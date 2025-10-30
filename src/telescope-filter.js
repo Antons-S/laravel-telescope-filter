@@ -293,11 +293,58 @@
       }
     },
 
+    commands: {
+      name: 'Commands',
+      url: '/telescope/commands',
+      filters: [
+        { type: 'text', id: 'command', label: 'Command Name', placeholder: 'e.g. migrate, queue:work' },
+        { type: 'text', id: 'exitCode', label: 'Exit Code', placeholder: 'e.g. 0, 1' }
+      ],
+      filterFn: (row, state) => {
+        const commandTd = row.querySelectorAll('td')[0];
+        const exitCodeTd = row.querySelectorAll('td')[1];
+
+        if (!commandTd || !exitCodeTd) return true;
+
+        const command = commandTd.textContent.trim();
+        const exitCode = exitCodeTd.textContent.trim();
+
+        const commandMatch = (!state.command || command.toLowerCase().includes(state.command.toLowerCase()));
+        const exitCodeMatch = (!state.exitCode || exitCode.includes(state.exitCode));
+
+        return commandMatch && exitCodeMatch;
+      }
+    },
+
+    exceptions: {
+      name: 'Exceptions',
+      url: '/telescope/exceptions',
+      filters: [
+        { type: 'text', id: 'type', label: 'Exception Type', placeholder: 'e.g. ErrorException' },
+        { type: 'text', id: 'message', label: 'Message Contains', placeholder: 'e.g. file not found' },
+        { type: 'text', id: 'count', label: 'Min Occurrences', placeholder: 'e.g. 5' }
+      ],
+      filterFn: (row, state) => {
+        const typeTd = row.querySelectorAll('td')[0];
+        const countTd = row.querySelectorAll('td')[1];
+
+        if (!typeTd || !countTd) return true;
+
+        const typeTitle = typeTd.getAttribute('title') || '';
+        const typeText = typeTd.textContent.trim();
+        const count = parseInt(countTd.textContent.trim()) || 0;
+
+        const typeMatch = (!state.type || typeTitle.toLowerCase().includes(state.type.toLowerCase()) || typeText.toLowerCase().includes(state.type.toLowerCase()));
+        const messageMatch = (!state.message || typeText.toLowerCase().includes(state.message.toLowerCase()));
+        const countMatch = (!state.count || count >= parseInt(state.count));
+
+        return typeMatch && messageMatch && countMatch;
+      }
+    },
+
     // Pages with TODO messages (empty or disabled)
-    commands: { name: 'Commands', url: '/telescope/commands', todo: true },
     schedule: { name: 'Schedule', url: '/telescope/schedule', todo: true },
     batches: { name: 'Batches', url: '/telescope/batches', todo: true },
-    exceptions: { name: 'Exceptions', url: '/telescope/exceptions', todo: true },
     mail: { name: 'Mail', url: '/telescope/mail', todo: true },
     notifications: { name: 'Notifications', url: '/telescope/notifications', todo: true },
     dumps: { name: 'Dumps', url: '/telescope/dumps', todo: true }
