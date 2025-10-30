@@ -1,0 +1,30 @@
+{
+  "name": "telescope-filter",
+  "version": "1.0.0",
+  "description": "A browser bookmarklet that adds advanced filtering capabilities to Laravel Telescope",
+  "main": "src/telescope-filter.js",
+  "scripts": {
+    "build": "node build.js",
+    "watch": "node build.js --watch",
+    "format": "prettier --write \"src/**/*.js\""
+  },
+  "keywords": [
+    "laravel",
+    "telescope",
+    "bookmarklet",
+    "filter",
+    "debugging"
+  ],
+  "devDependencies": {
+    "terser": "^5.31.0",
+    "prettier": "^3.3.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Antons-S/telescope-filter.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Antons-S/telescope-filter/issues"
+  },
+  "homepage": "https://github.com/Antons-S/telescope-filter#readme"
+}
