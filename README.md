@@ -1,25 +1,31 @@
 # Laravel Telescope Filter Bookmarklet
 
-A powerful browser bookmarklet that adds advanced filtering capabilities to Laravel Telescope. Filter requests, HTTP client calls, and jobs with ease, featuring smart auto-switching tabs, duration filters, and bulk loading.
+A powerful browser bookmarklet that adds advanced filtering capabilities to [Laravel Telescope](https://laravel.com/docs/telescope). Filter requests, HTTP client calls, and jobs with ease, featuring smart auto-switching tabs, duration filters, and bulk loading.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Version](https://img.shields.io/badge/version-1.0.0-green.svg)
 
 > **⚠️ Warning**: This project was created through AI-assisted rapid development (vibecoding). While functional, it may not have been thoroughly tested in all environments. Use at your own discretion.
 
+## 🔗 Related Projects
+
+- **[Laravel](https://laravel.com/)** - The PHP framework for web artisans
+- **[Laravel Telescope](https://laravel.com/docs/telescope)** - An elegant debug assistant for Laravel applications
+
 ## ✨ Features
 
-### Smart Tab Management
-- **Auto-switching tabs** - Automatically detects your current Telescope page and switches to the appropriate tab
-- **Three specialized tabs** - Requests, HTTP Client, and Jobs, each with relevant filters
+### Smart Page Detection
+- **Auto-detection** - Automatically detects which Telescope page you're viewing
+- **13 supported pages** - Requests, HTTP Client, Jobs, Commands, Cache, Queries, Events, Gates, Logs, Models, Redis, Views, and Exceptions
+- **Page-specific filters** - Each page shows only relevant filters for that data type
 
 ### Advanced Filtering
-- **Method filtering** - Filter by HTTP method (GET, POST, PUT, PATCH, DELETE)
-- **Status filtering** - Filter by response status codes (supports partial matching)
+- **HTTP method filtering** - Filter by method (GET, POST, PUT, PATCH, DELETE) on Requests & HTTP Client pages
+- **Status code filtering** - Filter by response status codes with partial matching
 - **Duration filtering** - Set minimum duration threshold in milliseconds
   - **+1sec quick button** - Increment duration by 1000ms with a single click
-- **Path/URI filtering** - Filter by URL path or job name (contains matching)
-- **Connection & Queue filtering** - Filter jobs by connection and queue name
+- **Text search filtering** - Search by path, URI, query, command name, message, and more
+- **Specialized filters** - Exit codes, cache actions, log levels, model actions, exception types, and more
 
 ### Smart Auto-Refresh
 - **Continuous filtering** - Filters apply automatically to newly loaded entries every 500ms
@@ -240,14 +246,14 @@ SOFTWARE.
 
 - **GitHub Repository**: https://github.com/Antons-S/telescope-filter
 - **Issues**: https://github.com/Antons-S/telescope-filter/issues
-- **Laravel Telescope**: https://laravel.com/docs/telescope
+- **Laravel Framework**: https://laravel.com/
+- **Laravel Telescope Documentation**: https://laravel.com/docs/telescope
+- **Laravel Telescope GitHub**: https://github.com/laravel/telescope
 
 ## 🙏 Acknowledgments
 
 - Thanks to the Laravel team for creating Telescope
 - Inspired by the need for better filtering in production debugging
-
-## 📮 Contact
 
 ---
 
