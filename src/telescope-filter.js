@@ -11,6 +11,10 @@
   let currentPage = null;
   let filterState = {};
 
+  // LocalStorage keys
+  const STORAGE_KEY_PREFIX = 'telescope_filter_';
+  const STORAGE_ENABLED_KEY = 'telescope_filter_enabled';
+
   // Page configurations for all 18 Telescope pages
   const PAGE_CONFIGS = {
     requests: {
@@ -350,6 +354,42 @@
   };
 
   /**
+   * LocalStorage functions
+   */
+  function isStorageEnabled() {
+    return localStorage.getItem(STORAGE_ENABLED_KEY) === 'true';
+  }
+
+  function setStorageEnabled(enabled) {
+    localStorage.setItem(STORAGE_ENABLED_KEY, enabled.toString());
+    if (!enabled) {
+      // Clear all saved filters when disabled
+      clearAllFilters();
+    }
+  }
+
+  function saveFilters(pageKey, filters) {
+    if (isStorageEnabled()) {
+      const key = STORAGE_KEY_PREFIX + pageKey;
+      localStorage.setItem(key, JSON.stringify(filters));
+    }
+  }
+
+  function loadFilters(pageKey) {
+    if (isStorageEnabled()) {
+      const key = STORAGE_KEY_PREFIX + pageKey;
+      const saved = localStorage.getItem(key);
+      return saved ? JSON.parse(saved) : {};
+    }
+    return {};
+  }
+
+  function clearAllFilters() {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith(STORAGE_KEY_PREFIX));
+    keys.forEach(k => localStorage.removeItem(k));
+  }
+
+  /**
    * Detect current page from URL
    */
   function detectCurrentPage() {
@@ -443,6 +483,11 @@
         </div>
         <button id="tfClose" style="width:100%;padding:8px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px;margin-bottom:12px">Close</button>
 
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:#9ca3af;font-size:12px;margin-bottom:12px">
+          <input type="checkbox" id="tfStorageEnabled" style="cursor:pointer;width:14px;height:14px">
+          <span>Remember filters</span>
+        </label>
+
         <div style="text-align:center;padding-top:8px;border-top:1px solid #374151">
           <a href="https://github.com/Antons-S/laravel-telescope-filter" target="_blank" style="color:#9ca3af;font-size:11px;text-decoration:none">Latest version on GitHub</a>
         </div>
@@ -479,6 +524,7 @@
 
     const originalText = btnElement.textContent;
     let successCount = 0;
+
 
     // Add spinner style
     const spinnerStyle = doc.createElement('style');
@@ -606,6 +652,43 @@
       }
     });
 
+    // Load saved filters from localStorage
+    const savedFilters = loadFilters(currentPage);
+    const hasSavedFilters = Object.keys(savedFilters).length > 0;
+    Object.keys(savedFilters).forEach(key => {
+      const input = inputs[key];
+      if (input && savedFilters[key]) {
+        input.value = savedFilters[key];
+      }
+    });
+
+    // Auto-apply saved filters if they exist
+    if (hasSavedFilters) {
+      filterState = savedFilters;
+      filterInterval = setInterval(applyFilters, REFRESH_INTERVAL);
+      applyFilters();
+    }
+
+    // Setup storage checkbox
+    const storageCheckbox = doc.getElementById('tfStorageEnabled');
+    if (storageCheckbox) {
+      storageCheckbox.checked = isStorageEnabled();
+      storageCheckbox.onchange = () => {
+        setStorageEnabled(storageCheckbox.checked);
+        if (storageCheckbox.checked) {
+          // Save current filters when enabled
+          const currentFilters = {};
+          config.filters.forEach(filter => {
+            const input = inputs[filter.id];
+            if (input && input.value) {
+              currentFilters[filter.id] = input.value;
+            }
+          });
+          saveFilters(currentPage, currentFilters);
+        }
+      };
+    }
+
     // Apply button
     doc.getElementById('tfFilter').onclick = () => {
       filterState = {};
@@ -615,6 +698,9 @@
           filterState[filter.id] = input.value;
         }
       });
+
+      // Save to localStorage if enabled
+      saveFilters(currentPage, filterState);
 
       if (filterInterval) clearInterval(filterInterval);
       filterInterval = setInterval(applyFilters, REFRESH_INTERVAL);
@@ -633,6 +719,12 @@
           input.value = filter.type === 'select' ? filter.options[0] : '';
         }
       });
+
+      // Clear saved filters from localStorage
+      if (isStorageEnabled()) {
+        const key = STORAGE_KEY_PREFIX + currentPage;
+        localStorage.removeItem(key);
+      }
 
       applyFilters();
     };
