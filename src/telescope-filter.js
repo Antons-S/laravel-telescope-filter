@@ -4,7 +4,6 @@
   // Constants
   const doc = document;
   const REFRESH_INTERVAL = 500;
-  const LOAD_MORE_COUNT = 100;
   const LOAD_MORE_DELAY = 300;
 
   // State
@@ -19,9 +18,9 @@
       url: '/telescope/requests',
       filters: [
         { type: 'select', id: 'method', label: 'Method', options: ['ALL', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE'] },
-        { type: 'text', id: 'status', label: 'Status', placeholder: 'e.g. 200, 404' },
+        { type: 'text', id: 'path', label: 'Path Contains', placeholder: 'e.g. /api/v1/users' },
         { type: 'duration', id: 'duration', label: 'Duration (ms)', placeholder: 'e.g. 1000' },
-        { type: 'text', id: 'path', label: 'Path Contains', placeholder: 'e.g. /api/v1/users' }
+        { type: 'text', id: 'status', label: 'Status', placeholder: 'e.g. 200, 404' }
       ],
       filterFn: (row, state) => {
         const methodBadge = row.querySelector('.badge');
@@ -433,7 +432,15 @@
 
         <div id="tfContent">${contentHTML}</div>
 
-        <button id="tfLoadMore" style="width:100%;padding:8px;background:#10b981;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px;margin-bottom:8px">Load More</button>
+        <div style="margin-bottom:8px">
+          <label style="display:block;margin-bottom:5px;font-weight:600;color:#9ca3af;font-size:13px">Load More:</label>
+          <div style="display:flex;gap:6px">
+            <button class="tfLoadMoreBtn" data-count="1" style="flex:1;padding:8px;background:#10b981;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px">1</button>
+            <button class="tfLoadMoreBtn" data-count="10" style="flex:1;padding:8px;background:#10b981;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px">10</button>
+            <button class="tfLoadMoreBtn" data-count="100" style="flex:1;padding:8px;background:#10b981;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px">100</button>
+            <button class="tfLoadMoreBtn" data-count="1000" style="flex:1;padding:8px;background:#10b981;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px">1000</button>
+          </div>
+        </div>
         <button id="tfClose" style="width:100%;padding:8px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px;margin-bottom:12px">Close</button>
 
         <div style="text-align:center;padding-top:8px;border-top:1px solid #374151">
@@ -461,7 +468,7 @@
   /**
    * Handle Load More button
    */
-  function handleLoadMore() {
+  function handleLoadMore(iterations, btnElement) {
     const autoLoadBtn = Array.from(document.querySelectorAll('button[title="Auto load entries"]'))
       .find(btn => btn.classList.contains('active'));
 
@@ -470,7 +477,33 @@
       console.log('Disabled auto-load button');
     }
 
-    let count = 0;
+    const originalText = btnElement.textContent;
+    let successCount = 0;
+
+    // Add spinner style
+    const spinnerStyle = doc.createElement('style');
+    spinnerStyle.textContent = `
+      @keyframes tfSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      .tf-spinner { display: inline-block; animation: tfSpin 1s linear infinite; }
+    `;
+    doc.head.appendChild(spinnerStyle);
+
+    // Update button to show spinner and count
+    function updateButtonText() {
+      btnElement.innerHTML = `<span class="tf-spinner">⟳</span> ${successCount}`;
+    }
+
+    // Disable all load more buttons during operation
+    const allLoadBtns = doc.querySelectorAll('.tfLoadMoreBtn');
+    allLoadBtns.forEach(btn => btn.disabled = true);
+    updateButtonText();
+
+    function isLoading() {
+      const loadingCells = Array.from(document.querySelectorAll('td[colspan="100"]'))
+        .filter(td => td.textContent.includes('Loading...'));
+      return loadingCells.length > 0;
+    }
+
     function loadMore() {
       const btns = Array.from(document.querySelectorAll('a'))
         .filter(e => e.textContent.trim() === "Load Older Entries");
@@ -478,17 +511,32 @@
 
       if (btn) {
         btn.click();
-        console.log(`Clicked ${count + 1}/${LOAD_MORE_COUNT}`);
-      } else {
-        console.log(`Button not found, retrying... (${count + 1}/${LOAD_MORE_COUNT})`);
-      }
+        successCount++;
+        updateButtonText();
+        console.log(`Clicked ${successCount}/${iterations}`);
 
-      count++;
-      if (count < LOAD_MORE_COUNT) {
+        if (successCount < iterations) {
+          setTimeout(loadMore, LOAD_MORE_DELAY);
+        } else {
+          console.log(`Completed ${successCount} clicks.`);
+          finish();
+        }
+      } else if (isLoading()) {
+        // Still loading, wait and retry indefinitely
+        console.log(`Loading... waiting for more entries to appear`);
         setTimeout(loadMore, LOAD_MORE_DELAY);
       } else {
-        console.log('Completed 100 steps.');
+        // Button not found and not loading - no more entries available
+        console.log(`Stopped after ${successCount} successful clicks. No more entries available.`);
+        finish();
       }
+    }
+
+    function finish() {
+      // Re-enable all buttons and restore text
+      allLoadBtns.forEach(btn => btn.disabled = false);
+      btnElement.textContent = originalText;
+      spinnerStyle.remove();
     }
 
     loadMore();
@@ -522,7 +570,10 @@
 
     // Setup event listeners for TODO pages
     if (config.todo) {
-      doc.getElementById('tfLoadMore').onclick = handleLoadMore;
+      const loadMoreButtons = doc.querySelectorAll('.tfLoadMoreBtn');
+      loadMoreButtons.forEach(btn => {
+        btn.onclick = () => handleLoadMore(parseInt(btn.getAttribute('data-count')), btn);
+      });
       doc.getElementById('tfClose').onclick = () => {
         if (filterInterval) clearInterval(filterInterval);
         container.remove();
@@ -586,8 +637,11 @@
       applyFilters();
     };
 
-    // Load More button
-    doc.getElementById('tfLoadMore').onclick = handleLoadMore;
+    // Load More buttons
+    const loadMoreButtons = doc.querySelectorAll('.tfLoadMoreBtn');
+    loadMoreButtons.forEach(btn => {
+      btn.onclick = () => handleLoadMore(parseInt(btn.getAttribute('data-count')), btn);
+    });
 
     // Close button
     doc.getElementById('tfClose').onclick = () => {
