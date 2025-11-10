@@ -44,24 +44,24 @@ A powerful browser bookmarklet that adds advanced filtering capabilities to [Lar
 
 ## 📦 Installation
 
-### Option 1: Use Pre-built Bookmarklet (Recommended)
+### Quick Install (Recommended)
 
-1. **Get the bookmarklet code**:
-   - Open `dist/bookmarklet.txt` from this repository
+**Get the bookmarklet code:**
 
-2. **Create a new bookmark**:
-   - **Chrome/Edge**: Press `Ctrl+Shift+O` (or `Cmd+Shift+O` on Mac) to open Bookmark Manager
-   - **Firefox**: Press `Ctrl+Shift+B` (or `Cmd+Shift+B` on Mac) to show Bookmarks Toolbar
-   - **Safari**: Press `Cmd+Shift+B` to show Favorites Bar
+🔗 **[Click here to view and copy the bookmarklet code](https://github.com/Antons-S/telescope-filter/blob/main/dist/bookmarklet.txt)**
 
-3. **Add the bookmarklet**:
-   - Right-click on the bookmarks bar → "Add page" or "New bookmark"
+**Create the bookmark:**
+1. Click the link above and copy the entire bookmarklet code
+2. Create a new bookmark in your browser:
+   - **Chrome/Edge**: Right-click bookmarks bar → "Add page"
+   - **Firefox**: Right-click bookmarks toolbar → "New bookmark"
+   - **Safari**: Bookmarks → Add Bookmark
+3. Set these values:
    - **Name**: `Telescope Filter` (or any name you prefer)
-   - **URL**: Paste the entire content from `bookmarklet.txt`
-
+   - **URL**: Paste the copied bookmarklet code
 4. **Done!** Visit any Laravel Telescope page and click the bookmark
 
-### Option 2: Build from Source
+### Option 2: Build from Source (For Development)
 
 If you want to modify the code or contribute:
 
