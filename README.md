@@ -48,7 +48,7 @@ A powerful browser bookmarklet that adds advanced filtering capabilities to [Lar
 
 **Get the bookmarklet code:**
 
-🔗 **[Click here to view and copy the bookmarklet code](https://github.com/Antons-S/telescope-filter/blob/main/dist/bookmarklet.txt)**
+🔗 **[Click here to view and copy the bookmarklet code](https://github.com/Antons-S/laravel-telescope-filter/blob/main/dist/bookmarklet.txt)**
 
 **Create the bookmark:**
 1. Click the link above and copy the entire bookmarklet code
@@ -67,8 +67,8 @@ If you want to modify the code or contribute:
 
 ```bash
 # Clone the repository
-git clone https://github.com/Antons-S/telescope-filter.git
-cd telescope-filter
+git clone https://github.com/Antons-S/laravel-telescope-filter.git
+cd laravel-telescope-filter
 
 # Install dependencies
 npm install
@@ -244,8 +244,8 @@ SOFTWARE.
 
 ## 🔗 Links
 
-- **GitHub Repository**: https://github.com/Antons-S/telescope-filter
-- **Issues**: https://github.com/Antons-S/telescope-filter/issues
+- **GitHub Repository**: https://github.com/Antons-S/laravel-telescope-filter
+- **Issues**: https://github.com/Antons-S/laravel-telescope-filter/issues
 - **Laravel Framework**: https://laravel.com/
 - **Laravel Telescope Documentation**: https://laravel.com/docs/telescope
 - **Laravel Telescope GitHub**: https://github.com/laravel/telescope
