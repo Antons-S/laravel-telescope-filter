@@ -490,6 +490,7 @@
 
         <div style="text-align:center;padding-top:8px;border-top:1px solid #374151">
           <a href="https://github.com/Antons-S/laravel-telescope-filter" target="_blank" style="color:#9ca3af;font-size:11px;text-decoration:none">Latest version on GitHub</a>
+          <div style="color:#6b7280;font-size:10px;margin-top:4px">v1.0.7</div>
         </div>
       </div>
     `;
