@@ -11,6 +11,11 @@
   let currentPage = null;
   let filterState = {};
 
+  // Version info
+  const CURRENT_VERSION = '1.0.9';
+  const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/Antons-S/laravel-telescope-filter/refs/heads/main/version.txt';
+  let latestVersion = null;
+
   // LocalStorage keys
   const STORAGE_KEY_PREFIX = 'telescope_filter_';
   const STORAGE_ENABLED_KEY = 'telescope_filter_enabled';
@@ -430,6 +435,57 @@
   }
 
   /**
+   * Check for latest version from GitHub
+   */
+  function checkLatestVersion() {
+    fetch(VERSION_CHECK_URL)
+      .then(res => {
+        if (!res.ok) {
+          console.error('Telescope Filter: Version check failed - HTTP', res.status);
+          return null;
+        }
+        return res.text();
+      })
+      .then(version => {
+        if (version) {
+          latestVersion = version.trim();
+          updateVersionDisplay();
+        }
+      })
+      .catch(err => {
+        console.error('Telescope Filter: Version check failed -', err.message);
+        // Silently fail - version display will show current only
+      });
+  }
+
+  /**
+   * Update version display in footer
+   */
+  function updateVersionDisplay() {
+    const versionEl = doc.getElementById('tfVersionDisplay');
+    if (!versionEl) return;
+
+    if (latestVersion && latestVersion !== CURRENT_VERSION) {
+      // Update available
+      versionEl.innerHTML = `
+        <div style="color:#6b7280;font-size:10px;margin-top:4px">
+          v${CURRENT_VERSION} <span style="color:#f59e0b;font-weight:600">(v${latestVersion} available!)</span>
+        </div>
+      `;
+    } else if (latestVersion) {
+      // Up to date
+      versionEl.innerHTML = `
+        <div style="color:#6b7280;font-size:10px;margin-top:4px">v${CURRENT_VERSION} <span style="color:#10b981">✓</span></div>
+      `;
+    } else {
+      // Still checking or failed
+      versionEl.innerHTML = `
+        <div style="color:#6b7280;font-size:10px;margin-top:4px">v${CURRENT_VERSION}</div>
+      `;
+    }
+  }
+
+  /**
    * Detect current page from URL
    */
   function detectCurrentPage() {
@@ -531,7 +587,7 @@
 
         <div style="text-align:center;padding-top:8px;border-top:1px solid #374151">
           <a href="https://github.com/Antons-S/laravel-telescope-filter" target="_blank" style="color:#9ca3af;font-size:11px;text-decoration:none">Latest version on GitHub</a>
-          <div style="color:#6b7280;font-size:10px;margin-top:4px">v1.0.8</div>
+          <div id="tfVersionDisplay" style="color:#6b7280;font-size:10px;margin-top:4px">v${CURRENT_VERSION}</div>
         </div>
       </div>
     `;
@@ -794,6 +850,9 @@
     container.id = 'tfContainer';
     container.innerHTML = generateDialogHTML(currentPage);
     doc.body.appendChild(container);
+
+    // Check for latest version
+    checkLatestVersion();
 
     // Setup event listeners for TODO pages
     if (config.todo) {
