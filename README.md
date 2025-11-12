@@ -3,7 +3,7 @@
 A powerful browser bookmarklet that adds advanced filtering capabilities to [Laravel Telescope](https://laravel.com/docs/telescope). Filter requests, HTTP client calls, and jobs with ease, featuring smart auto-switching tabs, duration filters, and bulk loading.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-1.0.7-green.svg)
+![Version](https://img.shields.io/badge/version-1.0.8-green.svg)
 
 > **⚠️ Warning**: This project was created through AI-assisted rapid development (vibecoding). While functional, it may not have been thoroughly tested in all environments. Use at your own discretion.
 
@@ -13,6 +13,13 @@ A powerful browser bookmarklet that adds advanced filtering capabilities to [Lar
 - **[Laravel Telescope](https://laravel.com/docs/telescope)** - An elegant debug assistant for Laravel applications
 
 ## ✨ Features
+
+### Telescope Quick Access
+- **Auto-open Telescope** - Configure site-to-telescope URL mappings
+- **One-click access** - Click bookmarklet on any page to open Telescope in a new tab
+- **Smart settings** - Pre-fills current URL when adding new mappings
+- **Domain-specific storage** - Each domain maintains its own list of telescope links in localStorage
+- **Example**: Map `example.com/uk/` to `https://example.com/uk/telescope` - click the bookmarklet anywhere on the UK site to instantly open UK Telescope
 
 ### Smart Page Detection
 - **Auto-detection** - Automatically detects which Telescope page you're viewing
@@ -81,13 +88,32 @@ npm run build
 
 ## 🚀 Usage
 
-### Basic Usage
+### Quick Access to Telescope (New!)
+
+**Setup (one-time per site):**
+
+1. Navigate to any page on your site (e.g., `example.com/uk/users/account/`)
+2. Click the bookmarklet
+3. Settings modal will open automatically
+4. The left column will be pre-filled with your current URL
+5. Adjust the site URL pattern (e.g., remove `/users/account/` → `example.com/uk/`)
+6. Enter your Telescope URL in the right column (e.g., `https://example.com/uk/telescope`)
+7. Click **Save**
+
+**Usage:**
+
+- Click the bookmarklet anywhere on that site → Telescope opens in a new tab!
+- Works across different paths on the same domain (e.g., `/uk/`, `/at/`, `/de/`)
+- Each domain stores its own telescope links
+
+### Basic Filtering
 
 1. Navigate to your Laravel Telescope page (e.g., `/telescope/requests`)
 2. Click the bookmarklet from your bookmarks bar
 3. The filter panel will appear in the top-right corner
 4. Set your desired filters
 5. Click **Apply** to activate filtering
+6. Click the **⚙ (cog icon)** to access settings
 
 ### Filter Examples
 

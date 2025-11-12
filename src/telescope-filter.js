@@ -14,6 +14,7 @@
   // LocalStorage keys
   const STORAGE_KEY_PREFIX = 'telescope_filter_';
   const STORAGE_ENABLED_KEY = 'telescope_filter_enabled';
+  const STORAGE_TELESCOPE_LINKS_KEY = 'telescope_links';
 
   // Page configurations for all 18 Telescope pages
   const PAGE_CONFIGS = {
@@ -390,6 +391,45 @@
   }
 
   /**
+   * Telescope Links localStorage functions
+   */
+  function loadTelescopeLinks() {
+    const saved = localStorage.getItem(STORAGE_TELESCOPE_LINKS_KEY);
+    return saved ? JSON.parse(saved) : [];
+  }
+
+  function saveTelescopeLinks(links) {
+    localStorage.setItem(STORAGE_TELESCOPE_LINKS_KEY, JSON.stringify(links));
+  }
+
+  /**
+   * Check current URL and redirect to Telescope if needed
+   */
+  function checkAndRedirect() {
+    const currentUrl = window.location.href;
+
+    // If already on telescope, don't redirect
+    if (currentUrl.toLowerCase().includes('telescope')) {
+      return false;
+    }
+
+    // Load telescope links from localStorage
+    const links = loadTelescopeLinks();
+
+    // Check if current URL matches any site URL
+    for (const link of links) {
+      if (link.siteUrl && link.telescopeUrl && currentUrl.includes(link.siteUrl)) {
+        // Open telescope in new tab
+        window.open(link.telescopeUrl, '_blank');
+        return true; // Opened in new tab
+      }
+    }
+
+    // No matching link found
+    return false;
+  }
+
+  /**
    * Detect current page from URL
    */
   function detectCurrentPage() {
@@ -466,8 +506,9 @@
 
     return `
       <div id="tfDialog" style="position:fixed;top:20px;right:20px;background:#1f2937;padding:20px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.5);z-index:10000;width:280px;font-family:sans-serif;border:1px solid #374151">
-        <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:2px solid #374151">
-          <h2 id="tfActiveTab" style="margin:0;color:#3b82f6;font-size:16px;font-weight:600;text-align:center">${config.name}</h2>
+        <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:2px solid #374151;display:flex;align-items:center;justify-content:space-between">
+          <h2 id="tfActiveTab" style="margin:0;color:#3b82f6;font-size:16px;font-weight:600;flex:1;text-align:center">${config.name}</h2>
+          <button id="tfSettingsBtn" style="background:transparent;border:none;color:#9ca3af;cursor:pointer;font-size:18px;padding:4px 8px;line-height:1;margin:0" title="Settings">⚙</button>
         </div>
 
         <div id="tfContent">${contentHTML}</div>
@@ -490,10 +531,148 @@
 
         <div style="text-align:center;padding-top:8px;border-top:1px solid #374151">
           <a href="https://github.com/Antons-S/laravel-telescope-filter" target="_blank" style="color:#9ca3af;font-size:11px;text-decoration:none">Latest version on GitHub</a>
-          <div style="color:#6b7280;font-size:10px;margin-top:4px">v1.0.7</div>
+          <div style="color:#6b7280;font-size:10px;margin-top:4px">v1.0.8</div>
         </div>
       </div>
     `;
+  }
+
+  /**
+   * Generate settings modal HTML
+   */
+  function generateSettingsHTML() {
+    const links = loadTelescopeLinks();
+    const currentUrl = window.location.origin + window.location.pathname;
+
+    let linksHTML = '';
+    if (links.length === 0) {
+      linksHTML = `
+        <div id="tfLinksContainer">
+          <div class="tfLinkRow" style="display:flex;gap:8px;margin-bottom:8px">
+            <input type="text" class="tfSiteUrl" value="${currentUrl}" placeholder="example.com" style="flex:1;padding:8px;border:1px solid #374151;border-radius:4px;font-size:13px;background:#111827;color:#f9fafb">
+            <input type="text" class="tfTelescopeUrl" placeholder="example.com/telescope" style="flex:1;padding:8px;border:1px solid #374151;border-radius:4px;font-size:13px;background:#111827;color:#f9fafb">
+            <button class="tfRemoveLinkBtn" style="padding:8px 12px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px">×</button>
+          </div>
+        </div>
+      `;
+    } else {
+      linksHTML = '<div id="tfLinksContainer">';
+      links.forEach((link) => {
+        linksHTML += `
+          <div class="tfLinkRow" style="display:flex;gap:8px;margin-bottom:8px">
+            <input type="text" class="tfSiteUrl" value="${link.siteUrl || ''}" placeholder="example.com" style="flex:1;padding:8px;border:1px solid #374151;border-radius:4px;font-size:13px;background:#111827;color:#f9fafb">
+            <input type="text" class="tfTelescopeUrl" value="${link.telescopeUrl || ''}" placeholder="example.com/telescope" style="flex:1;padding:8px;border:1px solid #374151;border-radius:4px;font-size:13px;background:#111827;color:#f9fafb">
+            <button class="tfRemoveLinkBtn" style="padding:8px 12px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px">×</button>
+          </div>
+        `;
+      });
+      linksHTML += '</div>';
+    }
+
+    return `
+      <div id="tfSettingsModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:10001;display:flex;align-items:center;justify-content:center;font-family:sans-serif">
+        <div style="background:#1f2937;border-radius:8px;width:90%;max-width:700px;max-height:90vh;overflow:auto;border:1px solid #374151">
+          <div style="padding:20px;border-bottom:1px solid #374151;display:flex;align-items:center;justify-content:space-between">
+            <h2 style="margin:0;color:#f9fafb;font-size:18px;font-weight:600">Settings</h2>
+            <button id="tfSettingsClose" style="background:transparent;border:none;color:#9ca3af;cursor:pointer;font-size:24px;padding:0;line-height:1" title="Close">×</button>
+          </div>
+
+          <div style="padding:20px">
+            <h3 style="margin:0 0 15px;color:#f9fafb;font-size:16px;font-weight:600">Telescope Links</h3>
+            <p style="margin:0 0 15px;color:#9ca3af;font-size:13px">Map site URLs to their Telescope links. When you open the bookmarklet on a matching site, it will open Telescope in a new tab.</p>
+            <p style="margin:0 0 15px;color:#6b7280;font-size:12px;font-style:italic">Note: Settings are stored in localStorage and are domain-specific. Each domain maintains its own list of telescope links.</p>
+
+            <div style="margin-bottom:15px">
+              <div style="display:flex;gap:8px;margin-bottom:8px">
+                <div style="flex:1;font-weight:600;color:#9ca3af;font-size:13px">Site URL Pattern</div>
+                <div style="flex:1;font-weight:600;color:#9ca3af;font-size:13px">Telescope URL</div>
+                <div style="width:44px"></div>
+              </div>
+              ${linksHTML}
+            </div>
+
+            <button id="tfAddLinkBtn" style="width:100%;padding:10px;background:#10b981;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px;margin-bottom:15px">+ Add Link</button>
+
+            <button id="tfSaveLinksBtn" style="width:100%;padding:10px;background:#3b82f6;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:14px">Save</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
+   * Show settings modal
+   */
+  function showSettings() {
+    // Remove existing modal if any
+    const existingModal = doc.getElementById('tfSettingsModal');
+    if (existingModal) {
+      existingModal.remove();
+    }
+
+    // Create and append modal
+    const modalContainer = doc.createElement('div');
+    modalContainer.innerHTML = generateSettingsHTML();
+    doc.body.appendChild(modalContainer.firstElementChild);
+
+    // Setup event listeners
+    setupSettingsListeners();
+  }
+
+  /**
+   * Setup settings modal event listeners
+   */
+  function setupSettingsListeners() {
+    // Close button
+    doc.getElementById('tfSettingsClose').onclick = () => {
+      doc.getElementById('tfSettingsModal').remove();
+    };
+
+    // Add link button
+    doc.getElementById('tfAddLinkBtn').onclick = () => {
+      const container = doc.getElementById('tfLinksContainer');
+      const currentUrl = window.location.origin + window.location.pathname;
+      const newRow = doc.createElement('div');
+      newRow.className = 'tfLinkRow';
+      newRow.style.cssText = 'display:flex;gap:8px;margin-bottom:8px';
+      newRow.innerHTML = `
+        <input type="text" class="tfSiteUrl" value="${currentUrl}" placeholder="example.com" style="flex:1;padding:8px;border:1px solid #374151;border-radius:4px;font-size:13px;background:#111827;color:#f9fafb">
+        <input type="text" class="tfTelescopeUrl" placeholder="example.com/telescope" style="flex:1;padding:8px;border:1px solid #374151;border-radius:4px;font-size:13px;background:#111827;color:#f9fafb">
+        <button class="tfRemoveLinkBtn" style="padding:8px 12px;background:#ef4444;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px">×</button>
+      `;
+      container.appendChild(newRow);
+
+      // Setup remove button for new row
+      newRow.querySelector('.tfRemoveLinkBtn').onclick = () => {
+        newRow.remove();
+      };
+    };
+
+    // Remove link buttons
+    doc.querySelectorAll('.tfRemoveLinkBtn').forEach(btn => {
+      btn.onclick = () => {
+        btn.parentElement.remove();
+      };
+    });
+
+    // Save button
+    doc.getElementById('tfSaveLinksBtn').onclick = () => {
+      const rows = doc.querySelectorAll('.tfLinkRow');
+      const links = [];
+
+      rows.forEach(row => {
+        const siteUrl = row.querySelector('.tfSiteUrl').value.trim();
+        const telescopeUrl = row.querySelector('.tfTelescopeUrl').value.trim();
+
+        if (siteUrl && telescopeUrl) {
+          links.push({ siteUrl, telescopeUrl });
+        }
+      });
+
+      saveTelescopeLinks(links);
+      alert('Telescope links saved successfully!');
+      doc.getElementById('tfSettingsModal').remove();
+    };
   }
 
   /**
@@ -603,7 +782,8 @@
 
     currentPage = detectCurrentPage();
     if (!currentPage) {
-      alert('Telescope Filter: Unknown page type');
+      // Not on a telescope page - show settings to add telescope link
+      showSettings();
       return;
     }
 
@@ -736,6 +916,11 @@
       btn.onclick = () => handleLoadMore(parseInt(btn.getAttribute('data-count')), btn);
     });
 
+    // Settings button
+    doc.getElementById('tfSettingsBtn').onclick = () => {
+      showSettings();
+    };
+
     // Close button
     doc.getElementById('tfClose').onclick = () => {
       if (filterInterval) clearInterval(filterInterval);
@@ -758,5 +943,9 @@
   }
 
   // Start the application
-  init();
+  // Check if we should redirect to Telescope
+  if (!checkAndRedirect()) {
+    // No redirect happened, show the dialog
+    init();
+  }
 })();
