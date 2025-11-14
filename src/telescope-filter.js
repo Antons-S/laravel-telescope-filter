@@ -12,7 +12,7 @@
   let filterState = {};
 
   // Version info
-  const CURRENT_VERSION = '1.0.11';
+  const CURRENT_VERSION = '1.0.12';
   const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/Antons-S/laravel-telescope-filter/refs/heads/main/version.txt';
   let latestVersion = null;
 
@@ -496,6 +496,23 @@
   }
 
   /**
+   * Compare two version strings (e.g., "1.0.12" vs "1.0.11")
+   */
+  function compareVersions(v1, v2) {
+    const parts1 = v1.split('.').map(Number);
+    const parts2 = v2.split('.').map(Number);
+
+    for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+      const num1 = parts1[i] || 0;
+      const num2 = parts2[i] || 0;
+
+      if (num1 > num2) return 1;
+      if (num1 < num2) return -1;
+    }
+    return 0;
+  }
+
+  /**
    * Update version display in footer
    */
   function updateVersionDisplay() {
@@ -503,12 +520,21 @@
     if (!versionEl) return;
 
     if (latestVersion && latestVersion !== CURRENT_VERSION) {
-      // Update available
-      versionEl.innerHTML = `
-        <div style="color:#6b7280;font-size:10px;margin-top:4px">
-          v${CURRENT_VERSION} <span style="color:#f59e0b;font-weight:600">(v${latestVersion} available!)</span>
-        </div>
-      `;
+      const comparison = compareVersions(latestVersion, CURRENT_VERSION);
+
+      if (comparison > 0) {
+        // Latest is newer - update available
+        versionEl.innerHTML = `
+          <div style="color:#6b7280;font-size:10px;margin-top:4px">
+            v${CURRENT_VERSION} <span style="color:#f59e0b;font-weight:600">(v${latestVersion} available!)</span>
+          </div>
+        `;
+      } else {
+        // Current is newer or equal - show as up to date
+        versionEl.innerHTML = `
+          <div style="color:#6b7280;font-size:10px;margin-top:4px">v${CURRENT_VERSION} <span style="color:#10b981">✓</span></div>
+        `;
+      }
     } else if (latestVersion) {
       // Up to date
       versionEl.innerHTML = `
@@ -616,7 +642,10 @@
         <div id="tfContent">${contentHTML}</div>
 
         <div style="margin-bottom:8px">
-          <label style="display:block;margin-bottom:5px;font-weight:600;color:#9ca3af;font-size:13px">Load More:</label>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+            <label style="font-weight:600;color:#9ca3af;font-size:13px">Load More:</label>
+            <button id="tfStopLoadMore" style="display:none;padding:4px 8px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600" title="Stop loading">✕ Stop</button>
+          </div>
           <div style="display:flex;gap:6px">
             <button class="tfLoadMoreBtn" data-count="1" style="flex:1;padding:8px;background:#10b981;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px">1</button>
             <button class="tfLoadMoreBtn" data-count="10" style="flex:1;padding:8px;background:#10b981;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px">10</button>
@@ -909,7 +938,7 @@
 
     const originalText = btnElement.textContent;
     let successCount = 0;
-
+    let isCancelled = false;
 
     // Add spinner style
     const spinnerStyle = doc.createElement('style');
@@ -924,6 +953,17 @@
       btnElement.innerHTML = `<span class="tf-spinner">⟳</span> ${successCount}`;
     }
 
+    // Show stop button
+    const stopBtn = doc.getElementById('tfStopLoadMore');
+    if (stopBtn) {
+      stopBtn.style.display = 'block';
+      stopBtn.onclick = () => {
+        isCancelled = true;
+        console.log('Load more cancelled by user');
+        finish();
+      };
+    }
+
     // Disable all load more buttons during operation
     const allLoadBtns = doc.querySelectorAll('.tfLoadMoreBtn');
     allLoadBtns.forEach(btn => btn.disabled = true);
@@ -936,6 +976,10 @@
     }
 
     function loadMore() {
+      if (isCancelled) {
+        return;
+      }
+
       const btns = Array.from(document.querySelectorAll('a'))
         .filter(e => e.textContent.trim() === "Load Older Entries");
       const btn = btns[btns.length - 1];
@@ -953,21 +997,19 @@
           finish();
         }
       } else if (isLoading()) {
-        // Still loading, wait and retry indefinitely
         console.log(`Loading... waiting for more entries to appear`);
         setTimeout(loadMore, LOAD_MORE_DELAY);
       } else {
-        // Button not found and not loading - no more entries available
         console.log(`Stopped after ${successCount} successful clicks. No more entries available.`);
         finish();
       }
     }
 
     function finish() {
-      // Re-enable all buttons and restore text
       allLoadBtns.forEach(btn => btn.disabled = false);
       btnElement.textContent = originalText;
       spinnerStyle.remove();
+      if (stopBtn) stopBtn.style.display = 'none';
     }
 
     loadMore();
