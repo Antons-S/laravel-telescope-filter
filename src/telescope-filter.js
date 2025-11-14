@@ -21,6 +21,7 @@
   const STORAGE_ENABLED_KEY = 'telescope_filter_enabled';
   const STORAGE_TELESCOPE_LINKS_KEY = 'telescope_links';
   const STORAGE_POSITION_KEY = 'telescope_filter_position';
+  const STORAGE_CUSTOM_POS_KEY = 'telescope_filter_custom_pos';
 
   // Page configurations for all 18 Telescope pages
   const PAGE_CONFIGS = {
@@ -430,6 +431,19 @@
     return positions[position] || positions['top-right'];
   }
 
+  function loadCustomPosition() {
+    const saved = localStorage.getItem(STORAGE_CUSTOM_POS_KEY);
+    return saved ? JSON.parse(saved) : null;
+  }
+
+  function saveCustomPosition(x, y) {
+    localStorage.setItem(STORAGE_CUSTOM_POS_KEY, JSON.stringify({ x, y }));
+  }
+
+  function clearCustomPosition() {
+    localStorage.removeItem(STORAGE_CUSTOM_POS_KEY);
+  }
+
   /**
    * Check current URL and redirect to Telescope if needed
    */
@@ -560,8 +574,15 @@
    */
   function generateDialogHTML(pageKey) {
     const config = PAGE_CONFIGS[pageKey];
-    const position = loadPosition();
-    const positionStyles = getPositionStyles(position);
+    const customPos = loadCustomPosition();
+    let positionStyles;
+
+    if (customPos) {
+      positionStyles = `top:${customPos.y}px;left:${customPos.x}px;bottom:auto;right:auto`;
+    } else {
+      const position = loadPosition();
+      positionStyles = getPositionStyles(position);
+    }
 
     let contentHTML = '';
 
@@ -587,8 +608,8 @@
 
     return `
       <div id="tfDialog" style="position:fixed;${positionStyles};background:#1f2937;padding:20px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.5);z-index:10000;width:280px;font-family:sans-serif;border:1px solid #374151">
-        <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:2px solid #374151;display:flex;align-items:center;justify-content:space-between">
-          <h2 id="tfActiveTab" style="margin:0;color:#3b82f6;font-size:16px;font-weight:600;flex:1;text-align:center">${config.name}</h2>
+        <div id="tfHeader" style="margin-bottom:15px;padding-bottom:10px;border-bottom:2px solid #374151;display:flex;align-items:center;justify-content:space-between;cursor:move">
+          <h2 id="tfActiveTab" style="margin:0;color:#3b82f6;font-size:16px;font-weight:600;flex:1;text-align:center;user-select:none">${config.name}</h2>
           <button id="tfSettingsBtn" style="background:transparent;border:none;color:#9ca3af;cursor:pointer;font-size:20px;padding:4px 8px;line-height:1;margin:0" title="Settings">⚙</button>
         </div>
 
@@ -796,6 +817,7 @@
         const settings = {
           telescopeLinks: loadTelescopeLinks(),
           position: loadPosition(),
+          customPosition: loadCustomPosition(),
           version: CURRENT_VERSION
         };
         exportText.value = JSON.stringify(settings, null, 2);
@@ -841,6 +863,9 @@
           saveTelescopeLinks(settings.telescopeLinks);
           if (settings.position) {
             savePosition(settings.position);
+          }
+          if (settings.customPosition) {
+            saveCustomPosition(settings.customPosition.x, settings.customPosition.y);
           }
           alert('Settings imported successfully! Refreshing...');
           doc.getElementById('tfSettingsModal').remove();
@@ -1112,6 +1137,7 @@
         btn.style.color = '#fff';
       }
       btn.onclick = () => {
+        clearCustomPosition();
         savePosition(position);
         const dialog = doc.getElementById('tfDialog');
 
@@ -1148,6 +1174,94 @@
       if (filterInterval) clearInterval(filterInterval);
       container.remove();
     };
+
+    // Drag functionality
+    const header = doc.getElementById('tfHeader');
+    const dialog = doc.getElementById('tfDialog');
+    let isDragging = false;
+    let startX, startY, startLeft, startTop;
+
+    header.onmousedown = (e) => {
+      if (e.target.id === 'tfSettingsBtn') return;
+
+      isDragging = true;
+      startX = e.clientX;
+      startY = e.clientY;
+
+      const rect = dialog.getBoundingClientRect();
+      startLeft = rect.left;
+      startTop = rect.top;
+
+      dialog.style.right = 'auto';
+      dialog.style.bottom = 'auto';
+
+      e.preventDefault();
+    };
+
+    doc.onmousemove = (e) => {
+      if (!isDragging) return;
+
+      const deltaX = e.clientX - startX;
+      const deltaY = e.clientY - startY;
+
+      const newLeft = startLeft + deltaX;
+      const newTop = startTop + deltaY;
+
+      const maxX = window.innerWidth - dialog.offsetWidth;
+      const maxY = window.innerHeight - dialog.offsetHeight;
+
+      const boundedLeft = Math.max(0, Math.min(newLeft, maxX));
+      const boundedTop = Math.max(0, Math.min(newTop, maxY));
+
+      dialog.style.left = boundedLeft + 'px';
+      dialog.style.top = boundedTop + 'px';
+    };
+
+    doc.onmouseup = () => {
+      if (isDragging) {
+        isDragging = false;
+        const rect = dialog.getBoundingClientRect();
+        saveCustomPosition(rect.left, rect.top);
+      }
+    };
+
+    // Keep dialog in bounds on window resize
+    function ensureInBounds() {
+      const rect = dialog.getBoundingClientRect();
+      const maxX = window.innerWidth - dialog.offsetWidth;
+      const maxY = window.innerHeight - dialog.offsetHeight;
+
+      let newLeft = rect.left;
+      let newTop = rect.top;
+      let needsUpdate = false;
+
+      if (rect.left < 0) {
+        newLeft = 0;
+        needsUpdate = true;
+      } else if (rect.left > maxX) {
+        newLeft = maxX;
+        needsUpdate = true;
+      }
+
+      if (rect.top < 0) {
+        newTop = 0;
+        needsUpdate = true;
+      } else if (rect.top > maxY) {
+        newTop = maxY;
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        dialog.style.left = newLeft + 'px';
+        dialog.style.top = newTop + 'px';
+        dialog.style.right = 'auto';
+        dialog.style.bottom = 'auto';
+        saveCustomPosition(newLeft, newTop);
+      }
+    }
+
+    window.addEventListener('resize', ensureInBounds);
+    ensureInBounds();
 
     // URL change detection for SPA navigation
     let lastUrl = location.pathname;
