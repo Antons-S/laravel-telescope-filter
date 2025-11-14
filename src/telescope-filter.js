@@ -12,7 +12,7 @@
   let filterState = {};
 
   // Version info
-  const CURRENT_VERSION = '1.0.10';
+  const CURRENT_VERSION = '1.0.11';
   const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/Antons-S/laravel-telescope-filter/refs/heads/main/version.txt';
   let latestVersion = null;
 
@@ -20,6 +20,7 @@
   const STORAGE_KEY_PREFIX = 'telescope_filter_';
   const STORAGE_ENABLED_KEY = 'telescope_filter_enabled';
   const STORAGE_TELESCOPE_LINKS_KEY = 'telescope_links';
+  const STORAGE_POSITION_KEY = 'telescope_filter_position';
 
   // Page configurations for all 18 Telescope pages
   const PAGE_CONFIGS = {
@@ -408,6 +409,28 @@
   }
 
   /**
+   * Position localStorage functions
+   */
+  function loadPosition() {
+    const saved = localStorage.getItem(STORAGE_POSITION_KEY);
+    return saved || 'top-right';
+  }
+
+  function savePosition(position) {
+    localStorage.setItem(STORAGE_POSITION_KEY, position);
+  }
+
+  function getPositionStyles(position) {
+    const positions = {
+      'top-right': 'top:20px;right:20px;bottom:auto;left:auto',
+      'top-left': 'top:20px;left:20px;bottom:auto;right:auto',
+      'bottom-right': 'bottom:20px;right:20px;top:auto;left:auto',
+      'bottom-left': 'bottom:20px;left:20px;top:auto;right:auto'
+    };
+    return positions[position] || positions['top-right'];
+  }
+
+  /**
    * Check current URL and redirect to Telescope if needed
    */
   function checkAndRedirect() {
@@ -537,6 +560,8 @@
    */
   function generateDialogHTML(pageKey) {
     const config = PAGE_CONFIGS[pageKey];
+    const position = loadPosition();
+    const positionStyles = getPositionStyles(position);
 
     let contentHTML = '';
 
@@ -561,10 +586,10 @@
     }
 
     return `
-      <div id="tfDialog" style="position:fixed;top:20px;right:20px;background:#1f2937;padding:20px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.5);z-index:10000;width:280px;font-family:sans-serif;border:1px solid #374151">
+      <div id="tfDialog" style="position:fixed;${positionStyles};background:#1f2937;padding:20px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.5);z-index:10000;width:280px;font-family:sans-serif;border:1px solid #374151">
         <div style="margin-bottom:15px;padding-bottom:10px;border-bottom:2px solid #374151;display:flex;align-items:center;justify-content:space-between">
           <h2 id="tfActiveTab" style="margin:0;color:#3b82f6;font-size:16px;font-weight:600;flex:1;text-align:center">${config.name}</h2>
-          <button id="tfSettingsBtn" style="background:transparent;border:none;color:#9ca3af;cursor:pointer;font-size:18px;padding:4px 8px;line-height:1;margin:0" title="Settings">⚙</button>
+          <button id="tfSettingsBtn" style="background:transparent;border:none;color:#9ca3af;cursor:pointer;font-size:20px;padding:4px 8px;line-height:1;margin:0" title="Settings">⚙</button>
         </div>
 
         <div id="tfContent">${contentHTML}</div>
@@ -585,9 +610,17 @@
           <span>Remember filters</span>
         </label>
 
-        <div style="text-align:center;padding-top:8px;border-top:1px solid #374151">
-          <a href="https://github.com/Antons-S/laravel-telescope-filter" target="_blank" style="color:#9ca3af;font-size:11px;text-decoration:none">Latest version on GitHub</a>
-          <div id="tfVersionDisplay" style="color:#6b7280;font-size:10px;margin-top:4px">v${CURRENT_VERSION}</div>
+        <div style="padding-top:8px;border-top:1px solid #374151">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <button class="tfPositionBtn" data-position="top-left" style="padding:4px 8px;background:#374151;color:#9ca3af;border:none;border-radius:4px;cursor:pointer;font-size:14px;line-height:1" title="Top Left">↖</button>
+            <a href="https://github.com/Antons-S/laravel-telescope-filter" target="_blank" style="color:#9ca3af;font-size:11px;text-decoration:none">Latest version on GitHub</a>
+            <button class="tfPositionBtn" data-position="top-right" style="padding:4px 8px;background:#374151;color:#9ca3af;border:none;border-radius:4px;cursor:pointer;font-size:14px;line-height:1" title="Top Right">↗</button>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <button class="tfPositionBtn" data-position="bottom-left" style="padding:4px 8px;background:#374151;color:#9ca3af;border:none;border-radius:4px;cursor:pointer;font-size:14px;line-height:1" title="Bottom Left">↙</button>
+            <div id="tfVersionDisplay" style="color:#6b7280;font-size:10px;text-align:center">v${CURRENT_VERSION}</div>
+            <button class="tfPositionBtn" data-position="bottom-right" style="padding:4px 8px;background:#374151;color:#9ca3af;border:none;border-radius:4px;cursor:pointer;font-size:14px;line-height:1" title="Bottom Right">↘</button>
+          </div>
         </div>
       </div>
     `;
@@ -762,6 +795,7 @@
       if (exportArea.style.display === 'none') {
         const settings = {
           telescopeLinks: loadTelescopeLinks(),
+          position: loadPosition(),
           version: CURRENT_VERSION
         };
         exportText.value = JSON.stringify(settings, null, 2);
@@ -805,6 +839,9 @@
 
         if (settings.telescopeLinks && Array.isArray(settings.telescopeLinks)) {
           saveTelescopeLinks(settings.telescopeLinks);
+          if (settings.position) {
+            savePosition(settings.position);
+          }
           alert('Settings imported successfully! Refreshing...');
           doc.getElementById('tfSettingsModal').remove();
           setTimeout(() => showSettings(), 100);
@@ -1066,6 +1103,45 @@
     doc.getElementById('tfSettingsBtn').onclick = () => {
       showSettings();
     };
+
+    // Position buttons
+    doc.querySelectorAll('.tfPositionBtn').forEach(btn => {
+      const position = btn.getAttribute('data-position');
+      if (position === loadPosition()) {
+        btn.style.background = '#3b82f6';
+        btn.style.color = '#fff';
+      }
+      btn.onclick = () => {
+        savePosition(position);
+        const dialog = doc.getElementById('tfDialog');
+
+        dialog.style.top = 'auto';
+        dialog.style.right = 'auto';
+        dialog.style.bottom = 'auto';
+        dialog.style.left = 'auto';
+
+        if (position === 'top-right') {
+          dialog.style.top = '20px';
+          dialog.style.right = '20px';
+        } else if (position === 'top-left') {
+          dialog.style.top = '20px';
+          dialog.style.left = '20px';
+        } else if (position === 'bottom-right') {
+          dialog.style.bottom = '20px';
+          dialog.style.right = '20px';
+        } else if (position === 'bottom-left') {
+          dialog.style.bottom = '20px';
+          dialog.style.left = '20px';
+        }
+
+        doc.querySelectorAll('.tfPositionBtn').forEach(b => {
+          b.style.background = '#374151';
+          b.style.color = '#9ca3af';
+        });
+        btn.style.background = '#3b82f6';
+        btn.style.color = '#fff';
+      };
+    });
 
     // Close button
     doc.getElementById('tfClose').onclick = () => {
