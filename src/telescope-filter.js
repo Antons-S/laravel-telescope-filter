@@ -12,7 +12,7 @@
   let filterState = {};
 
   // Version info
-  const CURRENT_VERSION = '1.0.9';
+  const CURRENT_VERSION = '1.0.10';
   const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/Antons-S/laravel-telescope-filter/refs/heads/main/version.txt';
   let latestVersion = null;
 
@@ -647,9 +647,32 @@
               ${linksHTML}
             </div>
 
-            <button id="tfAddLinkBtn" style="width:100%;padding:10px;background:#10b981;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px;margin-bottom:15px">+ Add Link</button>
+            <div style="display:flex;align-items:center;gap:12px;margin:20px 0;cursor:pointer" id="tfAddLinkBtn">
+              <div style="flex:1;height:1px;background:#374151"></div>
+              <span style="color:#9ca3af;font-size:13px;white-space:nowrap">+ Add Link</span>
+              <div style="flex:1;height:1px;background:#374151"></div>
+            </div>
 
-            <button id="tfSaveLinksBtn" style="width:100%;padding:10px;background:#3b82f6;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:14px">Save</button>
+            <button id="tfSaveLinksBtn" style="width:100%;padding:12px;background:#10b981;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:14px;margin-bottom:20px">Save Changes</button>
+
+            <div style="border-top:1px solid #374151;padding-top:20px">
+              <h3 style="margin:0 0 10px;color:#f9fafb;font-size:16px;font-weight:600">Backup & Restore</h3>
+              <p style="margin:0 0 15px;color:#9ca3af;font-size:13px">Export your settings as JSON to backup, or import previously exported settings.</p>
+
+              <button id="tfExportBtn" style="width:100%;padding:10px;background:#6b7280;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px;margin-bottom:10px">Export Settings</button>
+
+              <div id="tfExportArea" style="display:none;margin-bottom:15px">
+                <textarea id="tfExportText" readonly style="width:100%;height:120px;padding:10px;border:1px solid #374151;border-radius:4px;font-size:12px;font-family:monospace;background:#111827;color:#f9fafb;box-sizing:border-box;resize:vertical"></textarea>
+                <p style="margin:8px 0 0;color:#6b7280;font-size:11px">Copy this JSON to backup your settings</p>
+              </div>
+
+              <button id="tfImportBtn" style="width:100%;padding:10px;background:#6b7280;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px;margin-bottom:10px">Import Settings</button>
+
+              <div id="tfImportArea" style="display:none;margin-bottom:10px">
+                <textarea id="tfImportText" placeholder="Paste your exported JSON here..." style="width:100%;height:120px;padding:10px;border:1px solid #374151;border-radius:4px;font-size:12px;font-family:monospace;background:#111827;color:#f9fafb;box-sizing:border-box;resize:vertical"></textarea>
+                <button id="tfApplyImportBtn" style="width:100%;padding:8px;background:#10b981;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px;margin-top:8px">Apply Imported Settings</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -728,6 +751,70 @@
       saveTelescopeLinks(links);
       alert('Telescope links saved successfully!');
       doc.getElementById('tfSettingsModal').remove();
+    };
+
+    // Export button
+    doc.getElementById('tfExportBtn').onclick = () => {
+      const exportArea = doc.getElementById('tfExportArea');
+      const importArea = doc.getElementById('tfImportArea');
+      const exportText = doc.getElementById('tfExportText');
+
+      if (exportArea.style.display === 'none') {
+        const settings = {
+          telescopeLinks: loadTelescopeLinks(),
+          version: CURRENT_VERSION
+        };
+        exportText.value = JSON.stringify(settings, null, 2);
+        exportArea.style.display = 'block';
+        importArea.style.display = 'none';
+        exportText.select();
+      } else {
+        exportArea.style.display = 'none';
+      }
+    };
+
+    // Import button
+    doc.getElementById('tfImportBtn').onclick = () => {
+      const importArea = doc.getElementById('tfImportArea');
+      const exportArea = doc.getElementById('tfExportArea');
+
+      if (importArea.style.display === 'none') {
+        importArea.style.display = 'block';
+        exportArea.style.display = 'none';
+      } else {
+        importArea.style.display = 'none';
+      }
+    };
+
+    // Apply import button
+    doc.getElementById('tfApplyImportBtn').onclick = () => {
+      const importText = doc.getElementById('tfImportText');
+      const jsonStr = importText.value.trim();
+
+      if (!jsonStr) {
+        alert('Please paste your exported settings JSON');
+        return;
+      }
+
+      try {
+        const settings = JSON.parse(jsonStr);
+
+        if (!settings || typeof settings !== 'object') {
+          throw new Error('Invalid settings format');
+        }
+
+        if (settings.telescopeLinks && Array.isArray(settings.telescopeLinks)) {
+          saveTelescopeLinks(settings.telescopeLinks);
+          alert('Settings imported successfully! Refreshing...');
+          doc.getElementById('tfSettingsModal').remove();
+          setTimeout(() => showSettings(), 100);
+        } else {
+          throw new Error('No telescope links found in settings');
+        }
+      } catch (err) {
+        alert('Invalid JSON format. Please check your exported settings.\n\nError: ' + err.message);
+        console.error('Import error:', err);
+      }
     };
   }
 

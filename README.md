@@ -3,7 +3,7 @@
 A powerful browser bookmarklet that adds advanced filtering capabilities to [Laravel Telescope](https://laravel.com/docs/telescope). Filter requests, HTTP client calls, and jobs with ease, featuring smart auto-switching tabs, duration filters, and bulk loading.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Version](https://img.shields.io/badge/version-1.0.9-green.svg)
+![Version](https://img.shields.io/badge/version-1.0.10-green.svg)
 
 > **⚠️ Warning**: This project was created through AI-assisted rapid development (vibecoding). While functional, it may not have been thoroughly tested in all environments. Use at your own discretion.
 
@@ -12,42 +12,11 @@ A powerful browser bookmarklet that adds advanced filtering capabilities to [Lar
 - **[Laravel](https://laravel.com/)** - The PHP framework for web artisans
 - **[Laravel Telescope](https://laravel.com/docs/telescope)** - An elegant debug assistant for Laravel applications
 
-## ✨ Features
+## 📸 Screenshot
 
-### Telescope Quick Access
-- **Auto-open Telescope** - Configure site-to-telescope URL mappings
-- **One-click access** - Click bookmarklet on any page to open Telescope in a new tab
-- **Smart settings** - Pre-fills current URL when adding new mappings
-- **Domain-specific storage** - Each domain maintains its own list of telescope links in localStorage
-- **Example**: Map `example.com/uk/` to `https://example.com/uk/telescope` - click the bookmarklet anywhere on the UK site to instantly open UK Telescope
+![Telescope Filter in Action](screenshot.png)
 
-### Smart Page Detection
-- **Auto-detection** - Automatically detects which Telescope page you're viewing
-- **13 supported pages** - Requests, HTTP Client, Jobs, Commands, Cache, Queries, Events, Gates, Logs, Models, Redis, Views, and Exceptions
-- **Page-specific filters** - Each page shows only relevant filters for that data type
-
-### Advanced Filtering
-- **HTTP method filtering** - Filter by method (GET, POST, PUT, PATCH, DELETE) on Requests & HTTP Client pages
-- **Status code filtering** - Filter by response status codes with partial matching
-- **Duration filtering** - Set minimum duration threshold in milliseconds
-  - **+1sec quick button** - Increment duration by 1000ms with a single click
-- **Text search filtering** - Search by path, URI, query, command name, message, and more
-- **Specialized filters** - Exit codes, cache actions, log levels, model actions, exception types, and more
-
-### Smart Auto-Refresh
-- **Continuous filtering** - Filters apply automatically to newly loaded entries every 500ms
-- **No re-apply needed** - Once filters are applied, they work on dynamic content
-
-### Bulk Loading
-- **Load More button** - Automatically clicks "Load Older Entries" 100 times
-- **Smart conflict prevention** - Automatically disables Telescope's auto-load to prevent conflicts
-- **Configurable delay** - 300ms delay between each click for stability
-
-### User Experience
-- **Dark theme** - Matches Telescope's UI perfectly
-- **Enter key support** - Press Enter any input field to apply filters
-- **Reset button** - Clear all filters and stop auto-refresh with one click
-- **Minimal UI** - Fixed position panel that doesn't interfere with Telescope
+*Advanced filtering panel with Telescope Links settings for quick access to your Telescope instances*
 
 ## 📦 Installation
 
@@ -143,6 +112,44 @@ npm run build
 
 - **Enter** in any input field: Apply filters
 - **ESC**: Not implemented (use Close button)
+
+## ✨ Features
+
+### Telescope Quick Access
+- **Auto-open Telescope** - Configure site-to-telescope URL mappings
+- **One-click access** - Click bookmarklet on any page to open Telescope in a new tab
+- **Smart settings** - Pre-fills current URL when adding new mappings
+- **Domain-specific storage** - Each domain maintains its own list of telescope links in localStorage
+- **Example**: Map `example.com/uk/` to `https://example.com/uk/telescope` - click the bookmarklet anywhere on the UK site to instantly open UK Telescope
+
+### Smart Page Detection
+- **Auto-detection** - Automatically detects which Telescope page you're viewing
+- **13 supported pages** - Requests, HTTP Client, Jobs, Commands, Cache, Queries, Events, Gates, Logs, Models, Redis, Views, and Exceptions
+- **Page-specific filters** - Each page shows only relevant filters for that data type
+
+### Advanced Filtering
+- **HTTP method filtering** - Filter by method (GET, POST, PUT, PATCH, DELETE) on Requests & HTTP Client pages
+- **Status code filtering** - Filter by response status codes with partial matching
+- **Duration filtering** - Set minimum duration threshold in milliseconds
+  - **+1sec quick button** - Increment duration by 1000ms with a single click
+- **Text search filtering** - Search by path, URI, query, command name, message, and more
+- **Specialized filters** - Exit codes, cache actions, log levels, model actions, exception types, and more
+
+### Smart Auto-Refresh
+- **Continuous filtering** - Filters apply automatically to newly loaded entries every 500ms
+- **No re-apply needed** - Once filters are applied, they work on dynamic content
+
+### Bulk Loading
+- **Load More button** - Automatically clicks "Load Older Entries" 100 times
+- **Smart conflict prevention** - Automatically disables Telescope's auto-load to prevent conflicts
+- **Configurable delay** - 300ms delay between each click for stability
+
+### User Experience
+- **Dark theme** - Matches Telescope's UI perfectly
+- **Enter key support** - Press Enter any input field to apply filters
+- **Reset button** - Clear all filters and stop auto-refresh with one click
+- **Minimal UI** - Fixed position panel that doesn't interfere with Telescope
+- **Version checking** - Automatically checks for updates and notifies you when a new version is available
 
 ## 🛠️ Development
 
