@@ -12,7 +12,7 @@
   let filterState = {};
 
   // Version info
-  const CURRENT_VERSION = '1.0.12';
+  const CURRENT_VERSION = '1.0.13';
   const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/Antons-S/laravel-telescope-filter/refs/heads/main/version.txt';
   let latestVersion = null;
 
@@ -635,7 +635,7 @@
     return `
       <div id="tfDialog" style="position:fixed;${positionStyles};background:#1f2937;padding:20px;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.5);z-index:10000;width:280px;font-family:sans-serif;border:1px solid #374151">
         <div id="tfHeader" style="margin-bottom:15px;padding-bottom:10px;border-bottom:2px solid #374151;display:flex;align-items:center;justify-content:space-between;cursor:move">
-          <h2 id="tfActiveTab" style="margin:0;color:#3b82f6;font-size:16px;font-weight:600;flex:1;text-align:center;user-select:none">${config.name}</h2>
+          <h2 id="tfActiveTab" style="margin:0;color:#3b82f6;font-size:16px;font-weight:600;user-select:none;flex:1">${config.name}</h2>
           <button id="tfSettingsBtn" style="background:transparent;border:none;color:#9ca3af;cursor:pointer;font-size:20px;padding:4px 8px;line-height:1;margin:0" title="Settings">⚙</button>
         </div>
 
@@ -907,6 +907,103 @@
         console.error('Import error:', err);
       }
     };
+  }
+
+  /**
+   * Check if we're on a request detail page (has UUID in URL)
+   */
+  function getRequestUuidFromUrl() {
+    const match = window.location.pathname.match(/\/telescope\/requests\/([a-f0-9-]{36})$/i);
+    return match ? match[1] : null;
+  }
+
+  /**
+   * Build cURL command from Telescope request data
+   */
+  function buildCurlCommand(data) {
+    const content = data.entry.content;
+    const method = content.method;
+    const host = content.headers.host;
+    const proto = content.headers['x-forwarded-proto'] || 'https';
+    const url = `${proto}://${host}${content.uri}`;
+
+    let curl = `curl -X ${method} '${url}'`;
+
+    const skipHeaders = [
+      'cf-timezone', 'cf-region-code', 'cf-region', 'cf-postal-code',
+      'cf-iplongitude', 'cf-iplatitude', 'cf-ipcontinent', 'cf-ipcity',
+      'cf-visitor', 'cf-ipcountry', 'cf-connecting-ip', 'cdn-loop',
+      'cf-ray', 'x-forwarded-for', 'x-real-ip', 'x-forwarded-proto',
+      'host', 'connection', 'accept-encoding'
+    ];
+
+    for (const [key, value] of Object.entries(content.headers)) {
+      if (skipHeaders.includes(key.toLowerCase())) continue;
+      const escaped = value.replace(/'/g, "'\\''");
+      curl += ` \\\n  -H '${key}: ${escaped}'`;
+    }
+
+    if (['POST', 'PUT', 'PATCH'].includes(method) && content.payload && Object.keys(content.payload).length > 0) {
+      const contentType = content.headers['content-type'] || '';
+      let body;
+      if (contentType.includes('application/x-www-form-urlencoded')) {
+        body = Object.entries(content.payload)
+          .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+          .join('&');
+      } else {
+        body = JSON.stringify(content.payload);
+      }
+      curl += ` \\\n  -d '${body.replace(/'/g, "'\\''")}'`;
+    }
+
+    return curl;
+  }
+
+  /**
+   * Copy request as cURL command
+   */
+  function copyRequestAsCurl(btn) {
+    const uuid = getRequestUuidFromUrl();
+    if (!uuid) {
+      console.error('No request UUID found in URL');
+      return;
+    }
+
+    const baseUrl = window.location.origin + window.location.pathname.replace(/\/telescope\/requests.*/, '');
+    const apiUrl = `${baseUrl}/telescope/telescope-api/requests/${uuid}`;
+
+    const originalText = btn.textContent;
+    btn.textContent = '...';
+    btn.disabled = true;
+
+    fetch(apiUrl)
+      .then(res => res.json())
+      .then(data => {
+        const curl = buildCurlCommand(data);
+        navigator.clipboard.writeText(curl).then(() => {
+          btn.textContent = '✓';
+          btn.style.background = '#10b981';
+        }).catch(() => {
+          console.log('cURL command:\n' + curl);
+          btn.textContent = '⚠';
+          btn.style.background = '#f59e0b';
+        });
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.style.background = '#6366f1';
+          btn.disabled = false;
+        }, 1500);
+      })
+      .catch(err => {
+        console.error('Failed to fetch request details:', err);
+        btn.textContent = '✕';
+        btn.style.background = '#ef4444';
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.style.background = '#6366f1';
+          btn.disabled = false;
+        }, 1500);
+      });
   }
 
   /**
@@ -1224,7 +1321,7 @@
     let startX, startY, startLeft, startTop;
 
     header.onmousedown = (e) => {
-      if (e.target.id === 'tfSettingsBtn') return;
+      if (e.target.id === 'tfSettingsBtn' || e.target.id === 'tfCurlBtn') return;
 
       isDragging = true;
       startX = e.clientX;
@@ -1305,11 +1402,34 @@
     window.addEventListener('resize', ensureInBounds);
     ensureInBounds();
 
+    // cURL button for request detail page
+    function updateCurlButton() {
+      const header = doc.getElementById('tfHeader');
+      if (!header) return;
+
+      let curlBtn = doc.getElementById('tfCurlBtn');
+      const hasUuid = getRequestUuidFromUrl();
+
+      if (hasUuid && !curlBtn) {
+        curlBtn = document.createElement('button');
+        curlBtn.id = 'tfCurlBtn';
+        curlBtn.style.cssText = 'padding:4px 10px;background:#6366f1;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;margin-right:10px';
+        curlBtn.textContent = 'cURL';
+        curlBtn.onclick = () => copyRequestAsCurl(curlBtn);
+        header.insertBefore(curlBtn, header.firstChild);
+      } else if (!hasUuid && curlBtn) {
+        curlBtn.remove();
+      }
+    }
+
+    updateCurlButton();
+
     // URL change detection for SPA navigation
     let lastUrl = location.pathname;
     setInterval(() => {
       if (location.pathname !== lastUrl) {
         lastUrl = location.pathname;
+        updateCurlButton();
         const newPage = detectCurrentPage();
         if (newPage !== currentPage) {
           if (filterInterval) clearInterval(filterInterval);
