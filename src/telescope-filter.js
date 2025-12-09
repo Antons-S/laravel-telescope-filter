@@ -12,7 +12,7 @@
   let filterState = {};
 
   // Version info
-  const CURRENT_VERSION = '1.0.13';
+  const CURRENT_VERSION = '1.0.14';
   const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/Antons-S/laravel-telescope-filter/refs/heads/main/version.txt';
   let latestVersion = null;
 
@@ -911,17 +911,22 @@
 
   /**
    * Check if we're on a request detail page (has UUID in URL)
+   * Returns { type: 'requests' | 'client-requests', uuid: string } or null
    */
-  function getRequestUuidFromUrl() {
-    const match = window.location.pathname.match(/\/telescope\/requests\/([a-f0-9-]{36})$/i);
-    return match ? match[1] : null;
+  function getDetailPageInfo() {
+    const requestMatch = window.location.pathname.match(/\/telescope\/requests\/([a-f0-9-]{36})$/i);
+    if (requestMatch) return { type: 'requests', uuid: requestMatch[1] };
+
+    const clientMatch = window.location.pathname.match(/\/telescope\/client-requests\/([a-f0-9-]{36})$/i);
+    if (clientMatch) return { type: 'client-requests', uuid: clientMatch[1] };
+
+    return null;
   }
 
   /**
-   * Build cURL command from Telescope request data
+   * Build cURL command from Telescope request data (incoming requests)
    */
-  function buildCurlCommand(data) {
-    const content = data.entry.content;
+  function buildCurlFromRequest(content) {
     const method = content.method;
     const host = content.headers.host;
     const proto = content.headers['x-forwarded-proto'] || 'https';
@@ -960,17 +965,54 @@
   }
 
   /**
+   * Build cURL command from Telescope HTTP client data (outgoing requests)
+   */
+  function buildCurlFromHttpClient(content) {
+    const method = content.method;
+    const url = content.uri;
+
+    let curl = `curl -X ${method} '${url}'`;
+
+    if (content.headers && typeof content.headers === 'object') {
+      for (const [key, value] of Object.entries(content.headers)) {
+        const headerValue = Array.isArray(value) ? value.join(', ') : value;
+        const escaped = String(headerValue).replace(/'/g, "'\\''");
+        curl += ` \\\n  -H '${key}: ${escaped}'`;
+      }
+    }
+
+    if (['POST', 'PUT', 'PATCH'].includes(method) && content.payload) {
+      const contentType = content.headers && content.headers['Content-Type']
+        ? (Array.isArray(content.headers['Content-Type']) ? content.headers['Content-Type'][0] : content.headers['Content-Type'])
+        : '';
+      let body;
+      if (typeof content.payload === 'string') {
+        body = content.payload;
+      } else if (contentType.includes('application/x-www-form-urlencoded')) {
+        body = Object.entries(content.payload)
+          .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+          .join('&');
+      } else {
+        body = JSON.stringify(content.payload);
+      }
+      curl += ` \\\n  -d '${body.replace(/'/g, "'\\''")}'`;
+    }
+
+    return curl;
+  }
+
+  /**
    * Copy request as cURL command
    */
   function copyRequestAsCurl(btn) {
-    const uuid = getRequestUuidFromUrl();
-    if (!uuid) {
+    const pageInfo = getDetailPageInfo();
+    if (!pageInfo) {
       console.error('No request UUID found in URL');
       return;
     }
 
-    const baseUrl = window.location.origin + window.location.pathname.replace(/\/telescope\/requests.*/, '');
-    const apiUrl = `${baseUrl}/telescope/telescope-api/requests/${uuid}`;
+    const baseUrl = window.location.origin + window.location.pathname.replace(/\/telescope\/(requests|client-requests).*/, '');
+    const apiUrl = `${baseUrl}/telescope/telescope-api/${pageInfo.type}/${pageInfo.uuid}`;
 
     const originalText = btn.textContent;
     btn.textContent = '...';
@@ -979,7 +1021,10 @@
     fetch(apiUrl)
       .then(res => res.json())
       .then(data => {
-        const curl = buildCurlCommand(data);
+        const content = data.entry.content;
+        const curl = pageInfo.type === 'requests'
+          ? buildCurlFromRequest(content)
+          : buildCurlFromHttpClient(content);
         navigator.clipboard.writeText(curl).then(() => {
           btn.textContent = '✓';
           btn.style.background = '#10b981';
@@ -1402,22 +1447,22 @@
     window.addEventListener('resize', ensureInBounds);
     ensureInBounds();
 
-    // cURL button for request detail page
+    // cURL button for request/http-client detail page
     function updateCurlButton() {
       const header = doc.getElementById('tfHeader');
       if (!header) return;
 
       let curlBtn = doc.getElementById('tfCurlBtn');
-      const hasUuid = getRequestUuidFromUrl();
+      const pageInfo = getDetailPageInfo();
 
-      if (hasUuid && !curlBtn) {
+      if (pageInfo && !curlBtn) {
         curlBtn = document.createElement('button');
         curlBtn.id = 'tfCurlBtn';
         curlBtn.style.cssText = 'padding:4px 10px;background:#6366f1;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;margin-right:10px';
         curlBtn.textContent = 'cURL';
         curlBtn.onclick = () => copyRequestAsCurl(curlBtn);
         header.insertBefore(curlBtn, header.firstChild);
-      } else if (!hasUuid && curlBtn) {
+      } else if (!pageInfo && curlBtn) {
         curlBtn.remove();
       }
     }
