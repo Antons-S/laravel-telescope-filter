@@ -1,6 +1,6 @@
 {
   "name": "telescope-filter",
-  "version": "1.0.0",
+  "version": "1.0.15",
   "description": "A browser bookmarklet that adds advanced filtering capabilities to Laravel Telescope",
   "main": "src/telescope-filter.js",
   "scripts": {
