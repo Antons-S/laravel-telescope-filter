@@ -12,7 +12,7 @@
   let filterState = {};
 
   // Version info
-  const CURRENT_VERSION = '1.0.14';
+  const CURRENT_VERSION = '1.0.15';
   const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/Antons-S/laravel-telescope-filter/refs/heads/main/version.txt';
   let latestVersion = null;
 
@@ -1001,6 +1001,26 @@
     return curl;
   }
 
+  function copyToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return Promise.resolve();
+    } catch (e) {
+      document.body.removeChild(textarea);
+      return Promise.reject(e);
+    }
+  }
+
   /**
    * Copy request as cURL command
    */
@@ -1025,7 +1045,7 @@
         const curl = pageInfo.type === 'requests'
           ? buildCurlFromRequest(content)
           : buildCurlFromHttpClient(content);
-        navigator.clipboard.writeText(curl).then(() => {
+        copyToClipboard(curl).then(() => {
           btn.textContent = '✓';
           btn.style.background = '#10b981';
         }).catch(() => {
@@ -1459,7 +1479,7 @@
         curlBtn = document.createElement('button');
         curlBtn.id = 'tfCurlBtn';
         curlBtn.style.cssText = 'padding:4px 10px;background:#6366f1;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;font-weight:600;margin-right:10px';
-        curlBtn.textContent = 'cURL';
+        curlBtn.textContent = '⧉ cURL';
         curlBtn.onclick = () => copyRequestAsCurl(curlBtn);
         header.insertBefore(curlBtn, header.firstChild);
       } else if (!pageInfo && curlBtn) {
