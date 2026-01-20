@@ -12,7 +12,7 @@
   let filterState = {};
 
   // Version info
-  const CURRENT_VERSION = '1.0.15';
+  const CURRENT_VERSION = '1.0.16';
   const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/Antons-S/laravel-telescope-filter/refs/heads/main/version.txt';
   let latestVersion = null;
 
@@ -353,10 +353,38 @@
       }
     },
 
+    mail: {
+      name: 'Mail',
+      url: '/telescope/mail',
+      filters: [
+        { type: 'text', id: 'mailable', label: 'Mailable', placeholder: 'e.g. UserVerification' },
+        { type: 'text', id: 'subject', label: 'Subject', placeholder: 'e.g. Welcome' },
+        { type: 'checkbox', id: 'queuedOnly', label: 'Queued Only' }
+      ],
+      filterFn: (row, state) => {
+        const mailableTd = row.querySelectorAll('td')[0];
+        if (!mailableTd) return true;
+
+        const mailableSpan = mailableTd.querySelector('span[title]');
+        const mailable = mailableSpan ? (mailableSpan.getAttribute('title') || mailableSpan.textContent.trim()) : '';
+
+        const subjectSmall = mailableTd.querySelector('small.text-muted');
+        const subject = subjectSmall ? subjectSmall.textContent.replace(/^Subject:\s*/i, '').trim() : '';
+
+        const queuedBadge = mailableTd.querySelector('.badge');
+        const isQueued = queuedBadge && queuedBadge.textContent.trim().toLowerCase() === 'queued';
+
+        const mailableMatch = (!state.mailable || mailable.toLowerCase().includes(state.mailable.toLowerCase()));
+        const subjectMatch = (!state.subject || subject.toLowerCase().includes(state.subject.toLowerCase()));
+        const queuedMatch = (!state.queuedOnly || state.queuedOnly === 'false' || isQueued);
+
+        return mailableMatch && subjectMatch && queuedMatch;
+      }
+    },
+
     // Pages with TODO messages (empty or disabled)
     schedule: { name: 'Schedule', url: '/telescope/schedule', todo: true },
     batches: { name: 'Batches', url: '/telescope/batches', todo: true },
-    mail: { name: 'Mail', url: '/telescope/mail', todo: true },
     notifications: { name: 'Notifications', url: '/telescope/notifications', todo: true },
     dumps: { name: 'Dumps', url: '/telescope/dumps', todo: true }
   };
@@ -583,6 +611,15 @@
             <input type="text" id="tf_${filter.id}" placeholder="${filter.placeholder}" style="flex:1;padding:8px;border:1px solid #374151;border-radius:4px;font-size:13px;box-sizing:border-box;background:#111827;color:#f9fafb">
             <button id="tf_${filter.id}_inc" style="padding:8px 12px;background:#f59e0b;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px">+1sec</button>
           </div>
+        </div>
+      `;
+    } else if (filter.type === 'checkbox') {
+      return `
+        <div style="margin-bottom:12px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:#9ca3af;font-size:13px;font-weight:600">
+            <input type="checkbox" id="tf_${filter.id}" style="cursor:pointer;width:16px;height:16px">
+            <span>${filter.label}</span>
+          </label>
         </div>
       `;
     } else {
@@ -1250,8 +1287,13 @@
     const hasSavedFilters = Object.keys(savedFilters).length > 0;
     Object.keys(savedFilters).forEach(key => {
       const input = inputs[key];
+      const filterConfig = config.filters.find(f => f.id === key);
       if (input && savedFilters[key]) {
-        input.value = savedFilters[key];
+        if (filterConfig && filterConfig.type === 'checkbox') {
+          input.checked = savedFilters[key] === 'true';
+        } else {
+          input.value = savedFilters[key];
+        }
       }
     });
 
@@ -1273,8 +1315,11 @@
           const currentFilters = {};
           config.filters.forEach(filter => {
             const input = inputs[filter.id];
-            if (input && input.value) {
-              currentFilters[filter.id] = input.value;
+            if (input) {
+              const val = filter.type === 'checkbox' ? input.checked.toString() : input.value;
+              if (val && val !== 'false') {
+                currentFilters[filter.id] = val;
+              }
             }
           });
           saveFilters(currentPage, currentFilters);
@@ -1288,7 +1333,7 @@
       config.filters.forEach(filter => {
         const input = inputs[filter.id];
         if (input) {
-          filterState[filter.id] = input.value;
+          filterState[filter.id] = filter.type === 'checkbox' ? input.checked.toString() : input.value;
         }
       });
 
@@ -1309,7 +1354,13 @@
       config.filters.forEach(filter => {
         const input = inputs[filter.id];
         if (input) {
-          input.value = filter.type === 'select' ? filter.options[0] : '';
+          if (filter.type === 'checkbox') {
+            input.checked = false;
+          } else if (filter.type === 'select') {
+            input.value = filter.options[0];
+          } else {
+            input.value = '';
+          }
         }
       });
 
