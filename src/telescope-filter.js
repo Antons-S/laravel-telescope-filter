@@ -743,9 +743,11 @@
       return `
         <div style="margin-bottom:12px">
           <label style="display:block;margin-bottom:5px;font-weight:600;color:#9ca3af;font-size:13px">${filter.label}:</label>
-          <div style="display:flex;gap:8px">
-            <input type="text" id="tf_${filter.id}" placeholder="${filter.placeholder}" style="flex:1;padding:8px;border:1px solid #374151;border-radius:4px;font-size:13px;box-sizing:border-box;background:#111827;color:#f9fafb">
-            <button id="tf_${filter.id}_inc" style="padding:8px 12px;background:#f59e0b;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px">+1sec</button>
+          <input type="text" id="tf_${filter.id}" placeholder="${filter.placeholder}" style="width:100%;padding:8px;border:1px solid #374151;border-radius:4px;font-size:13px;box-sizing:border-box;background:#111827;color:#f9fafb;margin-bottom:6px">
+          <div style="display:flex;gap:4px">
+            <button class="tf_${filter.id}_inc" data-amount="100" style="flex:1;padding:6px;background:#f59e0b;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:11px">+100ms</button>
+            <button class="tf_${filter.id}_inc" data-amount="1000" style="flex:1;padding:6px;background:#f59e0b;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:11px">+1sec</button>
+            <button class="tf_${filter.id}_inc" data-amount="10000" style="flex:1;padding:6px;background:#f59e0b;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:11px">+10sec</button>
           </div>
         </div>
       `;
@@ -1443,15 +1445,15 @@
       if (input) {
         inputs[filter.id] = input;
 
-        // Setup +1sec button for duration filters
+        // Setup increment buttons for duration filters
         if (filter.type === 'duration') {
-          const incButton = doc.getElementById(`tf_${filter.id}_inc`);
-          if (incButton) {
-            incButton.onclick = () => {
+          doc.querySelectorAll(`.tf_${filter.id}_inc`).forEach(btn => {
+            btn.onclick = () => {
+              const amount = parseInt(btn.getAttribute('data-amount')) || 1000;
               const current = parseInt(input.value) || 0;
-              input.value = current + 1000;
+              input.value = current + amount;
             };
-          }
+          });
         }
 
         // Enter key support
