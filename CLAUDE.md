@@ -87,6 +87,10 @@ Test changes by:
 
 ## Important Notes
 
+- **Version updates** - When updating the version, update it in ALL places:
+  - `src/telescope-filter.js` (CURRENT_VERSION constant)
+  - `package.json` (version field)
+  - `version.txt` (used for update checks)
 - **Console logs** - `drop_console: false` in Terser config to keep console.log for Load More debugging
 - **Minification** - Uses aggressive unsafe optimizations since code runs in controlled browser context
 - **State isolation** - All state variables are closure-scoped to avoid global namespace pollution

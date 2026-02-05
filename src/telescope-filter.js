@@ -12,7 +12,7 @@
   let filterState = {};
 
   // Version info
-  const CURRENT_VERSION = '1.0.16';
+  const CURRENT_VERSION = '1.0.17';
   const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/Antons-S/laravel-telescope-filter/refs/heads/main/version.txt';
   let latestVersion = null;
 
@@ -22,6 +22,8 @@
   const STORAGE_TELESCOPE_LINKS_KEY = 'telescope_links';
   const STORAGE_POSITION_KEY = 'telescope_filter_position';
   const STORAGE_CUSTOM_POS_KEY = 'telescope_filter_custom_pos';
+  const STORAGE_SETTINGS_KEY = 'telescope_filter_settings';
+  const STORAGE_SEARCH_VALUE_KEY = 'telescope_filter_search_value';
 
   // Page configurations for all 18 Telescope pages
   const PAGE_CONFIGS = {
@@ -473,6 +475,140 @@
   }
 
   /**
+   * Settings localStorage functions
+   */
+  function loadSettings() {
+    const saved = localStorage.getItem(STORAGE_SETTINGS_KEY);
+    return saved ? JSON.parse(saved) : {};
+  }
+
+  function saveSettings(settings) {
+    localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(settings));
+  }
+
+  function updateSetting(key, value) {
+    const settings = loadSettings();
+    settings[key] = value;
+    saveSettings(settings);
+  }
+
+  /**
+   * Persistent search tag functions
+   */
+  function isSearchPersistenceEnabled() {
+    const settings = loadSettings();
+    return settings.persistentSearchTag === true;
+  }
+
+  function setSearchPersistenceEnabled(enabled) {
+    updateSetting('persistentSearchTag', enabled);
+    if (!enabled) {
+      clearSavedSearch();
+    }
+  }
+
+  function saveSearchValue(value) {
+    if (isSearchPersistenceEnabled()) {
+      localStorage.setItem(STORAGE_SEARCH_VALUE_KEY, value);
+    }
+  }
+
+  function loadSearchValue() {
+    if (isSearchPersistenceEnabled()) {
+      return localStorage.getItem(STORAGE_SEARCH_VALUE_KEY) || '';
+    }
+    return '';
+  }
+
+  function clearSavedSearch() {
+    localStorage.removeItem(STORAGE_SEARCH_VALUE_KEY);
+  }
+
+  /**
+   * Get the Telescope native search input
+   */
+  function getTelescopeSearchInput() {
+    return doc.querySelector('input#searchInput, input[placeholder*="Search Tag"], input.form-control[placeholder*="Tag"]');
+  }
+
+  /**
+   * Restore search value to Telescope search input
+   */
+  function restoreSearchValue() {
+    if (!isSearchPersistenceEnabled()) return;
+
+    const savedValue = loadSearchValue();
+    if (!savedValue) return;
+
+    const searchInput = getTelescopeSearchInput();
+    if (searchInput && searchInput.value !== savedValue) {
+      searchInput.value = savedValue;
+      searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+
+  /**
+   * Setup search input monitoring
+   */
+  function setupSearchMonitoring() {
+    const searchInput = getTelescopeSearchInput();
+    if (!searchInput) return;
+
+    if (searchInput._tfMonitored) return;
+    searchInput._tfMonitored = true;
+
+    searchInput.addEventListener('input', () => {
+      if (isSearchPersistenceEnabled()) {
+        saveSearchValue(searchInput.value);
+      }
+    });
+
+    restoreSearchValue();
+    injectClearButtonInSearch(searchInput);
+  }
+
+  /**
+   * Inject clear button inside the search input
+   */
+  function injectClearButtonInSearch(searchInput) {
+    if (!searchInput || searchInput._tfClearInjected) return;
+    searchInput._tfClearInjected = true;
+
+    const parent = searchInput.parentElement;
+    if (!parent) return;
+
+    const wrapper = doc.createElement('div');
+    wrapper.style.cssText = 'position:relative;display:inline-block;width:100%';
+
+    searchInput.parentNode.insertBefore(wrapper, searchInput);
+    wrapper.appendChild(searchInput);
+
+    const clearBtn = doc.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.innerHTML = '×';
+    clearBtn.style.cssText = 'position:absolute;right:8px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:#9ca3af;cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;display:none';
+    clearBtn.title = 'Clear search';
+
+    function updateClearBtnVisibility() {
+      clearBtn.style.display = searchInput.value ? 'block' : 'none';
+    }
+
+    searchInput.addEventListener('input', updateClearBtnVisibility);
+    updateClearBtnVisibility();
+
+    clearBtn.onclick = () => {
+      searchInput.value = '';
+      searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      clearSavedSearch();
+      clearBtn.style.display = 'none';
+      searchInput.focus();
+    };
+
+    wrapper.appendChild(clearBtn);
+    searchInput.style.paddingRight = '30px';
+  }
+
+  /**
    * Check current URL and redirect to Telescope if needed
    */
   function checkAndRedirect() {
@@ -775,6 +911,18 @@
 
             <button id="tfSaveLinksBtn" style="width:100%;padding:12px;background:#10b981;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:14px;margin-bottom:20px">Save Changes</button>
 
+            <div style="border-top:1px solid #374151;padding-top:20px;margin-bottom:20px">
+              <h3 style="margin:0 0 10px;color:#f9fafb;font-size:16px;font-weight:600">Options</h3>
+              <div style="display:flex;align-items:center;gap:8px">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:#9ca3af;font-size:13px;flex:1">
+                  <input type="checkbox" id="tfSearchPersistEnabled" style="cursor:pointer;width:16px;height:16px" ${isSearchPersistenceEnabled() ? 'checked' : ''}>
+                  <span>Persistent search tag</span>
+                </label>
+                <button id="tfClearSearchBtn" style="padding:4px 10px;background:#6b7280;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px" title="Clear saved search value">Clear</button>
+              </div>
+              <p style="margin:8px 0 0;color:#6b7280;font-size:12px">When enabled, the search tag input will be saved and restored across page refreshes and tab switches.</p>
+            </div>
+
             <div style="border-top:1px solid #374151;padding-top:20px">
               <h3 style="margin:0 0 10px;color:#f9fafb;font-size:16px;font-weight:600">Backup & Restore</h3>
               <p style="margin:0 0 15px;color:#9ca3af;font-size:13px">Export your settings as JSON to backup, or import previously exported settings.</p>
@@ -880,13 +1028,14 @@
       const exportText = doc.getElementById('tfExportText');
 
       if (exportArea.style.display === 'none') {
-        const settings = {
+        const exportData = {
           telescopeLinks: loadTelescopeLinks(),
           position: loadPosition(),
           customPosition: loadCustomPosition(),
+          settings: loadSettings(),
           version: CURRENT_VERSION
         };
-        exportText.value = JSON.stringify(settings, null, 2);
+        exportText.value = JSON.stringify(exportData, null, 2);
         exportArea.style.display = 'block';
         importArea.style.display = 'none';
         exportText.select();
@@ -933,6 +1082,9 @@
           if (settings.customPosition) {
             saveCustomPosition(settings.customPosition.x, settings.customPosition.y);
           }
+          if (settings.settings) {
+            saveSettings(settings.settings);
+          }
           alert('Settings imported successfully! Refreshing...');
           doc.getElementById('tfSettingsModal').remove();
           setTimeout(() => showSettings(), 100);
@@ -944,6 +1096,33 @@
         console.error('Import error:', err);
       }
     };
+
+    // Persistent search tag checkbox
+    const searchPersistCheckbox = doc.getElementById('tfSearchPersistEnabled');
+    if (searchPersistCheckbox) {
+      searchPersistCheckbox.onchange = () => {
+        setSearchPersistenceEnabled(searchPersistCheckbox.checked);
+        if (searchPersistCheckbox.checked) {
+          const searchInput = getTelescopeSearchInput();
+          if (searchInput && searchInput.value) {
+            saveSearchValue(searchInput.value);
+          }
+        }
+      };
+    }
+
+    // Clear search button in settings
+    const clearSearchBtn = doc.getElementById('tfClearSearchBtn');
+    if (clearSearchBtn) {
+      clearSearchBtn.onclick = () => {
+        clearSavedSearch();
+        const searchInput = getTelescopeSearchInput();
+        if (searchInput) {
+          searchInput.value = '';
+          searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      };
+    }
   }
 
   /**
@@ -1327,6 +1506,9 @@
       };
     }
 
+    // Setup search monitoring for persistent search tag
+    setupSearchMonitoring();
+
     // Apply button
     doc.getElementById('tfFilter').onclick = () => {
       filterState = {};
@@ -1551,8 +1733,16 @@
           if (filterInterval) clearInterval(filterInterval);
           container.remove();
           setTimeout(init, 100);
+        } else {
+          // Same page type but URL changed - restore search
+          setTimeout(() => {
+            setupSearchMonitoring();
+            restoreSearchValue();
+          }, 200);
         }
       }
+      // Periodically check for search input (Telescope loads content dynamically)
+      setupSearchMonitoring();
     }, REFRESH_INTERVAL);
   }
 
