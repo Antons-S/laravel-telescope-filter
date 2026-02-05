@@ -547,6 +547,10 @@
     }
   }
 
+  // Track the last monitored search input element and its value
+  let lastMonitoredSearchInput = null;
+  let lastKnownSearchValue = '';
+
   /**
    * Setup search input monitoring
    */
@@ -554,17 +558,58 @@
     const searchInput = getTelescopeSearchInput();
     if (!searchInput) return;
 
-    if (searchInput._tfMonitored) return;
-    searchInput._tfMonitored = true;
-
-    searchInput.addEventListener('input', () => {
-      if (isSearchPersistenceEnabled()) {
+    // Check if this is a new/different input element
+    if (searchInput === lastMonitoredSearchInput) {
+      // Same input - check for programmatic value changes (e.g., clicking tags)
+      if (isSearchPersistenceEnabled() && searchInput.value !== lastKnownSearchValue) {
+        lastKnownSearchValue = searchInput.value;
         saveSearchValue(searchInput.value);
       }
-    });
+      return;
+    }
+    lastMonitoredSearchInput = searchInput;
+    lastKnownSearchValue = searchInput.value;
+
+    const saveIfChanged = () => {
+      if (isSearchPersistenceEnabled() && searchInput.value !== lastKnownSearchValue) {
+        lastKnownSearchValue = searchInput.value;
+        saveSearchValue(searchInput.value);
+      }
+    };
+
+    searchInput.addEventListener('input', saveIfChanged);
+    searchInput.addEventListener('change', saveIfChanged);
+    searchInput.addEventListener('blur', saveIfChanged);
+    searchInput.addEventListener('keyup', saveIfChanged);
 
     restoreSearchValue();
     injectClearButtonInSearch(searchInput);
+    setupTagClickListener();
+  }
+
+  /**
+   * Listen for clicks on tag badges to capture tag values
+   */
+  function setupTagClickListener() {
+    if (doc._tfTagListenerAdded) return;
+    doc._tfTagListenerAdded = true;
+
+    doc.addEventListener('click', (e) => {
+      if (!isSearchPersistenceEnabled()) return;
+
+      const badge = e.target.closest('a.badge.badge-info, a.badge-info');
+      if (!badge) return;
+
+      const href = badge.getAttribute('href');
+      if (!href || !href.includes('tag=')) return;
+
+      const tagMatch = href.match(/[?&]tag=([^&]+)/);
+      if (tagMatch) {
+        const tagValue = decodeURIComponent(tagMatch[1]);
+        lastKnownSearchValue = tagValue;
+        saveSearchValue(tagValue);
+      }
+    });
   }
 
   /**
@@ -1406,6 +1451,9 @@
       filterInterval = null;
       existingContainer.remove();
     }
+
+    // Reset search input tracking for fresh monitoring
+    lastMonitoredSearchInput = null;
 
     currentPage = detectCurrentPage();
     if (!currentPage) {
