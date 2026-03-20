@@ -12,7 +12,7 @@
   let filterState = {};
 
   // Version info
-  const CURRENT_VERSION = '1.0.17';
+  const CURRENT_VERSION = '1.0.18';
   const VERSION_CHECK_URL = 'https://raw.githubusercontent.com/Antons-S/laravel-telescope-filter/refs/heads/main/version.txt';
   let latestVersion = null;
 
@@ -33,6 +33,7 @@
       filters: [
         { type: 'select', id: 'method', label: 'Method', options: ['ALL', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE'] },
         { type: 'text', id: 'path', label: 'Path Contains', placeholder: 'e.g. /api/v1/users' },
+        { type: 'text', id: 'path_not', label: 'Path Not Contains', placeholder: 'Exclude e.g. /health' },
         { type: 'duration', id: 'duration', label: 'Duration (ms)', placeholder: 'e.g. 1000' },
         { type: 'text', id: 'status', label: 'Status', placeholder: 'e.g. 200, 404' }
       ],
@@ -54,8 +55,9 @@
         const statusMatch = (!state.status || status.includes(state.status));
         const durationMatch = (!state.duration || durationValue >= parseInt(state.duration));
         const pathMatch = (!state.path || path.toLowerCase().includes(state.path.toLowerCase()));
+        const pathNotMatch = (!state.path_not || !path.toLowerCase().includes(state.path_not.toLowerCase()));
 
-        return methodMatch && statusMatch && durationMatch && pathMatch;
+        return methodMatch && statusMatch && durationMatch && pathMatch && pathNotMatch;
       }
     },
 
@@ -66,7 +68,8 @@
         { type: 'select', id: 'method', label: 'Method', options: ['ALL', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE'] },
         { type: 'text', id: 'status', label: 'Status', placeholder: 'e.g. 200, 404' },
         { type: 'duration', id: 'duration', label: 'Duration (ms)', placeholder: 'e.g. 1000' },
-        { type: 'text', id: 'uri', label: 'URI Contains', placeholder: 'e.g. api/models' }
+        { type: 'text', id: 'uri', label: 'URI Contains', placeholder: 'e.g. api/models' },
+        { type: 'text', id: 'uri_not', label: 'URI Not Contains', placeholder: 'Exclude e.g. api/health' }
       ],
       filterFn: (row, state) => {
         const methodBadge = row.querySelector('.badge');
@@ -86,8 +89,9 @@
         const statusMatch = (!state.status || status.includes(state.status));
         const durationMatch = (!state.duration || durationValue >= parseInt(state.duration));
         const uriMatch = (!state.uri || uri.toLowerCase().includes(state.uri.toLowerCase()));
+        const uriNotMatch = (!state.uri_not || !uri.toLowerCase().includes(state.uri_not.toLowerCase()));
 
-        return methodMatch && statusMatch && durationMatch && uriMatch;
+        return methodMatch && statusMatch && durationMatch && uriMatch && uriNotMatch;
       }
     },
 
@@ -96,6 +100,7 @@
       url: '/telescope/jobs',
       filters: [
         { type: 'text', id: 'jobName', label: 'Job Name', placeholder: 'e.g. SendEmailJob' },
+        { type: 'text', id: 'jobName_not', label: 'Job Name Not Contains', placeholder: 'Exclude e.g. PruneJob' },
         { type: 'text', id: 'status', label: 'Status', placeholder: 'e.g. pending, completed' },
         { type: 'text', id: 'connection', label: 'Connection', placeholder: 'e.g. redis' },
         { type: 'text', id: 'queue', label: 'Queue', placeholder: 'e.g. default' }
@@ -112,11 +117,12 @@
         const meta = metaSmall ? metaSmall.textContent.trim() : '';
 
         const jobMatch = (!state.jobName || job.toLowerCase().includes(state.jobName.toLowerCase()));
+        const jobNotMatch = (!state.jobName_not || !job.toLowerCase().includes(state.jobName_not.toLowerCase()));
         const statusMatch = (!state.status || status.toLowerCase().includes(state.status.toLowerCase()));
         const connectionMatch = (!state.connection || meta.toLowerCase().includes(state.connection.toLowerCase()));
         const queueMatch = (!state.queue || meta.toLowerCase().includes(state.queue.toLowerCase()));
 
-        return jobMatch && statusMatch && connectionMatch && queueMatch;
+        return jobMatch && jobNotMatch && statusMatch && connectionMatch && queueMatch;
       }
     },
 
@@ -125,6 +131,7 @@
       url: '/telescope/cache',
       filters: [
         { type: 'text', id: 'key', label: 'Key Contains', placeholder: 'e.g. user_' },
+        { type: 'text', id: 'key_not', label: 'Key Not Contains', placeholder: 'Exclude e.g. temp_' },
         { type: 'text', id: 'action', label: 'Action', placeholder: 'e.g. hit, missed, set' }
       ],
       filterFn: (row, state) => {
@@ -137,9 +144,10 @@
         const action = actionBadge.textContent.trim();
 
         const keyMatch = (!state.key || key.toLowerCase().includes(state.key.toLowerCase()));
+        const keyNotMatch = (!state.key_not || !key.toLowerCase().includes(state.key_not.toLowerCase()));
         const actionMatch = (!state.action || action.toLowerCase().includes(state.action.toLowerCase()));
 
-        return keyMatch && actionMatch;
+        return keyMatch && keyNotMatch && actionMatch;
       }
     },
 
@@ -148,6 +156,7 @@
       url: '/telescope/queries',
       filters: [
         { type: 'text', id: 'query', label: 'Query Contains', placeholder: 'e.g. SELECT, users' },
+        { type: 'text', id: 'query_not', label: 'Query Not Contains', placeholder: 'Exclude e.g. telescope' },
         { type: 'duration', id: 'duration', label: 'Duration (ms)', placeholder: 'e.g. 100' }
       ],
       filterFn: (row, state) => {
@@ -161,9 +170,10 @@
         const durationValue = parseInt(duration.replace('ms', '')) || 0;
 
         const queryMatch = (!state.query || query.toLowerCase().includes(state.query.toLowerCase()));
+        const queryNotMatch = (!state.query_not || !query.toLowerCase().includes(state.query_not.toLowerCase()));
         const durationMatch = (!state.duration || durationValue >= parseInt(state.duration));
 
-        return queryMatch && durationMatch;
+        return queryMatch && queryNotMatch && durationMatch;
       }
     },
 
@@ -172,6 +182,7 @@
       url: '/telescope/events',
       filters: [
         { type: 'text', id: 'name', label: 'Event Name', placeholder: 'e.g. UserRegistered' },
+        { type: 'text', id: 'name_not', label: 'Event Name Not Contains', placeholder: 'Exclude e.g. Heartbeat' },
         { type: 'text', id: 'listeners', label: 'Listeners', placeholder: 'e.g. SendWelcomeEmail' }
       ],
       filterFn: (row, state) => {
@@ -184,9 +195,10 @@
         const listeners = listenersTd ? listenersTd.textContent.trim() : '';
 
         const nameMatch = (!state.name || name.toLowerCase().includes(state.name.toLowerCase()));
+        const nameNotMatch = (!state.name_not || !name.toLowerCase().includes(state.name_not.toLowerCase()));
         const listenersMatch = (!state.listeners || listeners.toLowerCase().includes(state.listeners.toLowerCase()));
 
-        return nameMatch && listenersMatch;
+        return nameMatch && nameNotMatch && listenersMatch;
       }
     },
 
@@ -218,6 +230,7 @@
       url: '/telescope/logs',
       filters: [
         { type: 'text', id: 'message', label: 'Message Contains', placeholder: 'e.g. error, user' },
+        { type: 'text', id: 'message_not', label: 'Message Not Contains', placeholder: 'Exclude e.g. deprecated' },
         { type: 'text', id: 'level', label: 'Level', placeholder: 'e.g. error, warning, info' }
       ],
       filterFn: (row, state) => {
@@ -230,9 +243,10 @@
         const level = levelBadge.textContent.trim();
 
         const messageMatch = (!state.message || message.toLowerCase().includes(state.message.toLowerCase()));
+        const messageNotMatch = (!state.message_not || !message.toLowerCase().includes(state.message_not.toLowerCase()));
         const levelMatch = (!state.level || level.toLowerCase().includes(state.level.toLowerCase()));
 
-        return messageMatch && levelMatch;
+        return messageMatch && messageNotMatch && levelMatch;
       }
     },
 
@@ -288,6 +302,7 @@
       url: '/telescope/views',
       filters: [
         { type: 'text', id: 'name', label: 'View Name', placeholder: 'e.g. welcome, dashboard' },
+        { type: 'text', id: 'name_not', label: 'View Name Not Contains', placeholder: 'Exclude e.g. partials' },
         { type: 'text', id: 'composers', label: 'Composers', placeholder: 'e.g. ProfileComposer' }
       ],
       filterFn: (row, state) => {
@@ -300,9 +315,10 @@
         const composers = composersTd ? composersTd.textContent.trim() : '';
 
         const nameMatch = (!state.name || name.toLowerCase().includes(state.name.toLowerCase()));
+        const nameNotMatch = (!state.name_not || !name.toLowerCase().includes(state.name_not.toLowerCase()));
         const composersMatch = (!state.composers || composers.toLowerCase().includes(state.composers.toLowerCase()));
 
-        return nameMatch && composersMatch;
+        return nameMatch && nameNotMatch && composersMatch;
       }
     },
 
@@ -311,6 +327,7 @@
       url: '/telescope/commands',
       filters: [
         { type: 'text', id: 'command', label: 'Command Name', placeholder: 'e.g. migrate, queue:work' },
+        { type: 'text', id: 'command_not', label: 'Command Name Not Contains', placeholder: 'Exclude e.g. schedule:run' },
         { type: 'text', id: 'exitCode', label: 'Exit Code', placeholder: 'e.g. 0, 1' }
       ],
       filterFn: (row, state) => {
@@ -323,9 +340,10 @@
         const exitCode = exitCodeTd.textContent.trim();
 
         const commandMatch = (!state.command || command.toLowerCase().includes(state.command.toLowerCase()));
+        const commandNotMatch = (!state.command_not || !command.toLowerCase().includes(state.command_not.toLowerCase()));
         const exitCodeMatch = (!state.exitCode || exitCode.includes(state.exitCode));
 
-        return commandMatch && exitCodeMatch;
+        return commandMatch && commandNotMatch && exitCodeMatch;
       }
     },
 
@@ -334,7 +352,9 @@
       url: '/telescope/exceptions',
       filters: [
         { type: 'text', id: 'type', label: 'Exception Type', placeholder: 'e.g. ErrorException' },
+        { type: 'text', id: 'type_not', label: 'Exception Type Not Contains', placeholder: 'Exclude e.g. Notice' },
         { type: 'text', id: 'message', label: 'Message Contains', placeholder: 'e.g. file not found' },
+        { type: 'text', id: 'message_not', label: 'Message Not Contains', placeholder: 'Exclude e.g. deprecated' },
         { type: 'text', id: 'count', label: 'Min Occurrences', placeholder: 'e.g. 5' }
       ],
       filterFn: (row, state) => {
@@ -348,10 +368,12 @@
         const count = parseInt(countTd.textContent.trim()) || 0;
 
         const typeMatch = (!state.type || typeTitle.toLowerCase().includes(state.type.toLowerCase()) || typeText.toLowerCase().includes(state.type.toLowerCase()));
+        const typeNotMatch = (!state.type_not || (!typeTitle.toLowerCase().includes(state.type_not.toLowerCase()) && !typeText.toLowerCase().includes(state.type_not.toLowerCase())));
         const messageMatch = (!state.message || typeText.toLowerCase().includes(state.message.toLowerCase()));
+        const messageNotMatch = (!state.message_not || !typeText.toLowerCase().includes(state.message_not.toLowerCase()));
         const countMatch = (!state.count || count >= parseInt(state.count));
 
-        return typeMatch && messageMatch && countMatch;
+        return typeMatch && typeNotMatch && messageMatch && messageNotMatch && countMatch;
       }
     },
 
@@ -849,6 +871,7 @@
           <button id="tfFilter" style="flex:1;padding:8px;background:#3b82f6;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px">Apply</button>
           <button id="tfReset" style="flex:1;padding:8px;background:#6b7280;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:600;font-size:13px">Reset</button>
         </div>
+        <div id="tfResultCount" style="text-align:center;color:#9ca3af;font-size:12px;margin-bottom:8px"></div>
       `;
     }
 
@@ -1337,6 +1360,14 @@
   /**
    * Apply filters to table rows
    */
+  function updateResultCount() {
+    const counter = doc.getElementById('tfResultCount');
+    if (!counter) return;
+    const rows = doc.querySelectorAll('#indexScreen tbody tr:not(.dontanimate)');
+    const visible = Array.from(rows).filter(r => r.style.display !== 'none').length;
+    counter.textContent = `Filtered ${visible} / ${rows.length}`;
+  }
+
   function applyFilters() {
     if (!currentPage) return;
 
@@ -1347,6 +1378,8 @@
     rows.forEach(row => {
       row.style.display = config.filterFn(row, filterState) ? '' : 'none';
     });
+
+    updateResultCount();
   }
 
   /**
@@ -1793,6 +1826,7 @@
       }
       // Periodically check for search input (Telescope loads content dynamically)
       setupSearchMonitoring();
+      updateResultCount();
     }, REFRESH_INTERVAL);
   }
 
